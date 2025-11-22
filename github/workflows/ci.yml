@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'   # all branches; tighten later if you want
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86
+
+      - name: Run unit tests
+        run: ./scripts/run-tests.sh
+
+      - name: Build ISO
+        run: ./scripts/build-iso.sh
+
+      - name: QEMU smoke test
+        run: ./scripts/qemu-smoketest.sh enzos.iso
+
+      - name: Upload ISO artifact (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enzos-iso
+          path: enzos.iso
+          if-no-files-found: ignore
