@@ -6,17 +6,17 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Basic OS packages + toolchain + GRUB + ISO tools + QEMU
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      build-essential \
-      nasm \
-      grub-pc-bin \
-      grub-common \
-      xorriso \
-      qemu-system-x86 \
-      make \
-      git \
-      ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+  apt-get install -y --no-install-recommends \
+  build-essential \
+  nasm \
+  grub2-common \
+  grub-common \
+  xorriso \
+  qemu-system-x86 \
+  make \
+  git \
+  ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
 
 # Optional: set a working directory inside the container
 WORKDIR /src
