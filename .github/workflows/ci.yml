@@ -3,19 +3,115 @@ name: CI
 on:
   push:
     branches:
-      - '**'   # all branches; tighten later if you want
+      - "**" # all branches; tighten later if you want
   pull_request:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
-  build-and-test:
+  build-image:
+    name: Build dev image (only when Dockerfile changes)
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      tag: ${{ steps.meta.outputs.tag }}
+      built: ${{ steps.filter.outputs.dockerfile }}
+      pushable: ${{ steps.pushable.outputs.pushable }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build EnzOS dev image
-        run: docker build -t enzos-dev .
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dockerfile:
+              - 'Dockerfile'
+
+      - name: Image metadata
+        id: meta
+        run: |
+          OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "image=ghcr.io/${OWNER}/enzos-dev" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Push permission check
+        id: pushable
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            echo "pushable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pushable=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to GHCR
+        if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build dev image
+        if: steps.filter.outputs.dockerfile == 'true'
+        run: |
+          IMAGE="${{ steps.meta.outputs.image }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+          docker build -t "$IMAGE:$TAG" -t "$IMAGE:latest" --build-arg MAKE_JOBS=1 .
+
+      - name: Push dev image
+        if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+        run: |
+          IMAGE="${{ steps.meta.outputs.image }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+          docker push "$IMAGE:$TAG"
+          docker push "$IMAGE:latest"
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    needs: build-image
+    permissions:
+      contents: read
+      packages: read
+    env:
+      IMAGE: ${{ needs.build-image.outputs.image }}
+      IMAGE_TAG: ${{ needs.build-image.outputs.tag }}
+      IMAGE_BUILT: ${{ needs.build-image.outputs.built }}
+      IMAGE_PUSHABLE: ${{ needs.build-image.outputs.pushable }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: extractions/setup-just@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull dev image
+        run: |
+          if [ -z "${IMAGE}" ]; then
+            echo "Image name missing from build-image job"
+            exit 1
+          fi
+
+          if [ "${IMAGE_BUILT}" = "true" ] && [ "${IMAGE_PUSHABLE}" = "true" ]; then
+            docker pull "${IMAGE}:${IMAGE_TAG}" || docker pull "${IMAGE}:latest"
+            docker tag "${IMAGE}:${IMAGE_TAG}" enzos-dev || docker tag "${IMAGE}:latest" enzos-dev
+          else
+            docker pull "${IMAGE}:latest"
+            docker tag "${IMAGE}:latest" enzos-dev
+          fi
+
+      - name: Verify environment
+        run: just doctor
 
       - name: Run unit tests
         run: ./scripts/run-tests.sh
