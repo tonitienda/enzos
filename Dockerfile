@@ -1,4 +1,3 @@
-# Minimal Ubuntu image with everything needed to build EnzOS + cross-compiler
 FROM ubuntu:24.04
 
 # Avoid interactive prompts during install (e.g. GRUB, tzdata)
