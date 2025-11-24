@@ -138,6 +138,14 @@ jobs:
             enzos-dev \
             bash -c "./scripts/qemu-smoketest.sh enzos.iso"
 
+      - name: Upload QEMU smoke test log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-smoketest-log
+          path: qemu-smoketest.log
+          if-no-files-found: ignore
+
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
