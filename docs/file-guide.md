@@ -16,6 +16,8 @@ This guide summarizes the current files in EnzOS and how they help you explore b
 
 - **justfile** – Convenience recipes for building the dev container and verifying the cross-compiler version.
 
+- **grub/grub.cfg** – Bootloader configuration consumed by `grub-mkrescue` to generate an ISO that jumps directly into the EnzOS kernel.
+
   ```bash
   # Build the container
   just prepare
@@ -46,4 +48,4 @@ These helpers are scaffolding—you will flesh them out as the OS grows. Each sc
 
 ## Next Steps
 
-Use the milestones in `README.md` as a roadmap: finish the build script, add a GRUB config, and iterate with QEMU. Each completed step gives you a clearer understanding of how the kernel, bootloader, and toolchain fit together.
+Use the milestones in `README.md` as a roadmap: finish the build script, wire in the GRUB config, and iterate with QEMU. Each completed step gives you a clearer understanding of how the kernel, bootloader, and toolchain fit together.
