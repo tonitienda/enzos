@@ -21,6 +21,9 @@ jobs:
       - name: Run unit tests
         run: ./scripts/run-tests.sh
 
+      - name: Build kernel ELF
+        run: ./scripts/build-elf.sh
+
       - name: Build ISO
         run: ./scripts/build-iso.sh
 
