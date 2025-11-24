@@ -138,6 +138,17 @@ jobs:
             enzos-dev \
             bash -c "./scripts/qemu-smoketest.sh enzos.iso"
 
+      - name: Show QEMU smoke test log
+        if: ${{ always() }}
+        run: |
+          if [ -f qemu-smoketest.log ]; then
+            echo "===== qemu-smoketest.log ====="
+            cat qemu-smoketest.log
+            echo "===== end qemu-smoketest.log ====="
+          else
+            echo "qemu-smoketest.log not found"
+          fi
+
       - name: Upload QEMU smoke test log
         if: ${{ always() }}
         uses: actions/upload-artifact@v4

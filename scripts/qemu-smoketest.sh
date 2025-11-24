@@ -6,6 +6,7 @@ ISO_PATH="${1:-$REPO_ROOT/enzos.iso}"
 LOG_PATH="$REPO_ROOT/qemu-smoketest.log"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-60}"
 SUCCESS_PATTERN="EnzOS booted successfully."
+QEMU_LOG_FLAGS=(-d guest_errors,int -msg timestamp=on)
 QEMU_STATUS=0
 
 require_tools() {
@@ -37,8 +38,8 @@ run_qemu() {
 
   set +e
   timeout "${TIMEOUT_SECONDS}s" \
-    qemu-system-x86_64 -cdrom "$ISO_PATH" -serial stdio -no-reboot -no-shutdown -display none \
-    | tee "$LOG_PATH"
+    qemu-system-x86_64 -cdrom "$ISO_PATH" -serial stdio -no-reboot -no-shutdown -display none "${QEMU_LOG_FLAGS[@]}" \
+    2>&1 | tee "$LOG_PATH"
   QEMU_STATUS=${PIPESTATUS[0]}
   set -e
 
