@@ -114,7 +114,7 @@ jobs:
       - name: Run unit tests
         run: ./scripts/run-tests.sh
 
-      - name: Build kernel ELF inside container
+      - name: Build kernel ELF
         run: |
           docker run --rm \
             -v "$PWD":/src \
