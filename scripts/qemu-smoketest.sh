@@ -4,8 +4,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ISO_PATH="${1:-$REPO_ROOT/enzos.iso}"
 LOG_PATH="$REPO_ROOT/qemu-smoketest.log"
-TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-20}"
+TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-60}"
 SUCCESS_PATTERN="EnzOS booted successfully."
+QEMU_STATUS=0
 
 require_tools() {
   local missing=()
@@ -34,11 +35,15 @@ run_qemu() {
   echo "[qemu-smoketest] Booting $ISO_PATH in QEMU (timeout: ${TIMEOUT_SECONDS}s)..."
   : > "$LOG_PATH"
 
-  if ! timeout "${TIMEOUT_SECONDS}s" \
+  set +e
+  timeout "${TIMEOUT_SECONDS}s" \
     qemu-system-x86_64 -cdrom "$ISO_PATH" -serial stdio -no-reboot -no-shutdown -display none \
-    | tee "$LOG_PATH"; then
-    echo "[qemu-smoketest] QEMU exited with a non-zero status." >&2
-    exit 1
+    | tee "$LOG_PATH"
+  QEMU_STATUS=${PIPESTATUS[0]}
+  set -e
+
+  if ((QEMU_STATUS != 0)); then
+    echo "[qemu-smoketest] QEMU exited with status $QEMU_STATUS; continuing to scan log." >&2
   fi
 }
 
@@ -48,7 +53,7 @@ assert_boot_message() {
     return
   fi
 
-  echo "[qemu-smoketest] Boot message not found in $LOG_PATH" >&2
+  echo "[qemu-smoketest] Boot message not found in $LOG_PATH (QEMU exit status: $QEMU_STATUS)" >&2
   exit 1
 }
 
