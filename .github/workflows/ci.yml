@@ -114,6 +114,14 @@ jobs:
       - name: Run unit tests
         run: ./scripts/run-tests.sh
 
+      - name: Build kernel ELF inside container
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -w /src \
+            enzos-dev \
+            bash -c "./scripts/build-elf.sh"
+
       - name: Build ISO inside container
         run: |
           docker run --rm \
