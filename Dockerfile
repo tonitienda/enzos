@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM --platform=linux/amd64 ubuntu:24.04
 
 # Avoid interactive prompts during install (e.g. GRUB, tzdata)
 ENV DEBIAN_FRONTEND=noninteractive
@@ -21,9 +21,11 @@ RUN apt-get update && \
   ca-certificates \
   git \
   make \
+  socat \
   nasm \
   grub2-common \
   grub-common \
+  grub-pc-bin \
   xorriso \
   mtools \
   qemu-system-x86 && \

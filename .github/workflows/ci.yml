@@ -122,7 +122,7 @@ jobs:
             enzos-dev \
             bash -c "./scripts/build-elf.sh"
 
-      - name: Build ISO inside container
+      - name: Build ISO
         run: |
           docker run --rm \
             -v "$PWD":/src \
