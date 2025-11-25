@@ -133,9 +133,9 @@ assert_boot_message() {
     exit 1
   fi
 
-  if python3 - "$SUCCESS_PATTERN" "$VRAM_DUMP_PATH" <<'PY'; then
-import sys
-from pathlib import Path
+  if python3 - "$SUCCESS_PATTERN" "$VRAM_DUMP_PATH" <<'PY'
+  import sys
+  from pathlib import Path
 
 pattern, dump_path = sys.argv[1:3]
 data = Path(dump_path).read_bytes()
@@ -147,9 +147,9 @@ if pattern in text:
 
 preview = text.strip().split("\n")
 preview_line = preview[0] if preview else ""
-print(f"[qemu-smoketest] VGA text did not contain pattern. First line: '{preview_line}'")
-sys.exit(1)
-PY
+  print(f"[qemu-smoketest] VGA text did not contain pattern. First line: '{preview_line}'")
+  sys.exit(1)
+  PY
   then
     return
   fi
