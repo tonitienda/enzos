@@ -67,44 +67,7 @@ wait_for_qmp() {
 }
 
 dump_vram_and_shutdown() {
-  python3 - "$QMP_SOCKET_PATH" "$VRAM_DUMP_PATH" <<'PY'
-import json
-import socket
-import sys
-from pathlib import Path
-
-qmp_socket, dump_path = sys.argv[1:]
-
-def recv_message(sock):
-    data = b""
-    while not data.endswith(b"\r\n"):
-        chunk = sock.recv(4096)
-        if not chunk:
-            break
-        data += chunk
-    return data
-
-def send_command(sock, command):
-    payload = json.dumps(command) + "\r\n"
-    sock.sendall(payload.encode())
-    return recv_message(sock)
-
-with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
-    sock.connect(qmp_socket)
-    recv_message(sock)
-    send_command(sock, {"execute": "qmp_capabilities"})
-    send_command(
-        sock,
-        {
-            "execute": "human-monitor-command",
-            "arguments": {"command-line": f"pmemsave 0xb8000 4000 {dump_path}"},
-        },
-    )
-    send_command(sock, {"execute": "quit"})
-
-if not Path(dump_path).exists():
-    sys.exit("Failed to dump VGA text buffer.")
-PY
+  python3 "$REPO_ROOT/scripts/qemu_vga_tools.py" dump "$QMP_SOCKET_PATH" "$VRAM_DUMP_PATH"
 }
 
 wait_for_qemu_exit() {
@@ -133,23 +96,7 @@ assert_boot_message() {
     exit 1
   fi
 
-  if python3 - "$SUCCESS_PATTERN" "$VRAM_DUMP_PATH" <<'PY'
-  import sys
-  from pathlib import Path
-
-pattern, dump_path = sys.argv[1:3]
-data = Path(dump_path).read_bytes()
-chars = data[0::2]
-text = bytes(c for c in chars if c != 0).decode("ascii", errors="ignore")
-if pattern in text:
-    print(f"[qemu-smoketest] Found success pattern in VGA text: '{pattern}'")
-    sys.exit(0)
-
-preview = text.strip().split("\n")
-preview_line = preview[0] if preview else ""
-  print(f"[qemu-smoketest] VGA text did not contain pattern. First line: '{preview_line}'")
-  sys.exit(1)
-  PY
+  if python3 "$REPO_ROOT/scripts/qemu_vga_tools.py" assert "$SUCCESS_PATTERN" "$VRAM_DUMP_PATH"
   then
     return
   fi
