@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ISO_PATH="${1:-enzos.iso}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if ! command -v qemu-system-x86_64 >/dev/null 2>&1; then
         echo "[qemu-smoketest] qemu-system-x86_64 is required to run this test." >&2
@@ -28,21 +29,10 @@ timeout 20s bash -c "{
 } | qemu-system-x86_64 -cdrom \"$ISO_PATH\" -monitor stdio -serial none -parallel none -display none -no-reboot -no-shutdown" >"$VGA_DUMP"
 
 # Extract printable characters from the dump: every even-positioned byte is a
-# character, and the odd-positioned bytes are color attributes.
-VGA_TEXT=$(awk '
-/^[0-9a-fA-F]+:/ {
-        for (i = 2; i <= NF; i++) {
-                if ((i - 2) % 2 == 0) {
-                        hex = $i
-                        if (hex == "00") {
-                                continue
-                        }
-                        printf "%c", strtonum("0x" hex)
-                }
-        }
-}
-END { print "" }
-' "$VGA_DUMP")
+# character, and the odd-positioned bytes are color attributes. We use Python
+# instead of awk for portability because some awk implementations (e.g., mawk)
+# omit strtonum.
+VGA_TEXT=$(python3 "$SCRIPT_DIR/qemu_vga_extract.py" "$VGA_DUMP")
 
 if [[ "$VGA_TEXT" == *"EnzOS booted successfully."* ]]; then
         echo "[qemu-smoketest] VGA boot message detected."
