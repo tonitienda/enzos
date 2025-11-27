@@ -175,6 +175,12 @@ jobs:
             qemu-vga-dump.txt
           if-no-files-found: ignore
 
+      - name: Install ImageMagick for PR screenshot rendering
+        if: github.event_name == 'pull_request'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
       - name: Prepare PR comment for VNC artifacts
         if: always() && github.event_name == 'pull_request'
         id: prepare_vnc_comment
