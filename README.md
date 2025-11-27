@@ -10,12 +10,12 @@ EnzOS - tiny OS for learning purposes
 
 1️⃣ Prepare Environment (15–20 min)
 
-- [ ] Install build tools
-- [ ] build-essential
-- [ ] grub-pc-bin and grub-common
-- [ ] xorriso
-- [ ] qemu-system-x86
-- [ ] Create project structure
+- [x] Install build tools
+- [x] build-essential
+- [x] grub-pc-bin and grub-common
+- [x] xorriso
+- [x] qemu-system-x86
+- [x] Create project structure
 
 ```
 enzos/
@@ -35,26 +35,26 @@ enzos/
 
 kernel_entry.s
 
-- [ ] Add Multiboot or Multiboot2 header
-- [ ] Define _start
-- [ ] Set up stack
-- [ ] Call kmain()
-- [ ] Halt in infinite loop
+- [x] Add Multiboot or Multiboot2 header
+- [x] Define _start
+- [x] Set up stack
+- [x] Call kmain()
+- [x] Halt in infinite loop
 
 
 kernel.c
 
-- [ ] Implement kmain()
-- [ ] Get VGA buffer pointer (0xB8000)
-- [ ] Write string: "EnzOS boot OK!"
-- [ ] Infinite loop
+- [x] Implement kmain()
+- [x] Get VGA buffer pointer (0xB8000)
+- [x] Write string: "EnzOS boot OK!"
+- [x] Infinite loop
 
 
 linker.ld
 
-- [ ] Define ENTRY(_start)
-- [ ] Place .text, .rodata, .data, .bss
-- [ ] Set load address (e.g. 0x100000)
+- [x] Define ENTRY(_start)
+- [x] Place .text, .rodata, .data, .bss
+- [x] Set load address (e.g. 0x100000)
 
 
 
@@ -64,10 +64,10 @@ linker.ld
 
 grub/grub.cfg
 
-- [ ] Set timeout to 0
-- [ ] Create menu entry "EnzOS"
-- [ ] Use multiboot2 /boot/enzos.elf (or multiboot)
-- [ ] Call boot
+- [x] Set timeout to 0
+- [x] Create menu entry "EnzOS"
+- [x] Use multiboot2 /boot/enzos.elf (or multiboot)
+- [x] Call boot
 
 
 
@@ -77,13 +77,13 @@ grub/grub.cfg
 
 scripts/build-iso.sh
 
-- [ ] Create build/ and iso-root/ directories
-- [ ] Assemble kernel_entry.s → kernel_entry.o
-- [ ] Compile kernel.c → kernel.o
-- [ ] Link → build/enzos.elf with linker.ld
-- [ ] Copy enzos.elf into iso-root/boot/
-- [ ] Copy grub.cfg into iso-root/boot/grub/
-- [ ] Run grub-mkrescue -o enzos.iso iso-root/
+- [x] Create build/ and iso-root/ directories
+- [x] Assemble kernel_entry.s → kernel_entry.o
+- [x] Compile kernel.c → kernel.o
+- [x] Link → build/enzos.elf with linker.ld
+- [x] Copy enzos.elf into iso-root/boot/
+- [x] Copy grub.cfg into iso-root/boot/grub/
+- [x] Run grub-mkrescue -o enzos.iso iso-root/
 
 
 ---
@@ -104,18 +104,18 @@ qemu-system-x86_64 -cdrom enzos.iso -serial stdio -no-reboot -no-shutdown
 
 CI Setup
 
-- [ ] Install build dependencies in workflow
-- [ ] Run unit tests (if any)
-- [ ] Run scripts/build-iso.sh
-- [ ] Run scripts/qemu-smoketest.sh enzos.iso
+- [x] Install build dependencies in workflow
+- [x] Run unit tests (if any)
+- [x] Run scripts/build-iso.sh
+- [x] Run scripts/qemu-smoketest.sh enzos.iso
 
 
 scripts/qemu-smoketest.sh
 
-- [ ] Run QEMU headless with timeout
+- [x] Run QEMU headless with timeout
 - [ ] Capture serial output
 - [ ] Check for "EnzOS boot OK!"
-- [ ] Exit 0 if found, else exit 1
+- [x] Exit 0 if found, else exit 1
 - [ ] Verify CI goes red → fix → green
 
 
@@ -124,11 +124,11 @@ scripts/qemu-smoketest.sh
 
 7️⃣ Release Workflow (15–30 min)
 
-- [ ] Add tag-based workflow
-- [ ] [ ] Build ISO
-- [ ] Run QEMU smoke test
-- [ ] Create GitHub Release
-- [ ] Upload enzos.iso
+- [x] Add tag-based workflow
+- [x] Build ISO
+- [x] Run QEMU smoke test
+- [x] Create GitHub Release
+- [x] Upload enzos.iso
 - [ ] Create first release tag (v0.0.1)
 ---
 
