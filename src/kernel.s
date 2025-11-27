@@ -10,9 +10,10 @@ Declare a multiboot header that marks the program as a kernel. These are magic
 values that are documented in the multiboot standard. The bootloader will
 search for this signature in the first 8 KiB of the kernel file, aligned at a
 32-bit boundary. The signature is in its own section so the header can be
-forced to be within the first 8 KiB of the kernel file.
+forced to be within the first 8 KiB of the kernel file. The section is marked
+ALLOC so the linker keeps it in a loadable segment where GRUB can find it.
 */
-.section .multiboot
+.section .multiboot, "a"
 .align 4
 .long MAGIC
 .long FLAGS
