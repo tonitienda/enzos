@@ -93,8 +93,13 @@ scripts/build-iso.sh
 - [ ] Boot locally in QEMU:
 ```
 qemu-system-x86_64 -cdrom enzos.iso -serial stdio -no-reboot -no-shutdown
-``` 
+```
 - [ ] Verify "EnzOS boot OK!" appears
+
+## VNC Screenshot Capture
+
+- Set `VNC_SCREENSHOT` when running `scripts/qemu-smoketest.sh` to record what the guest draws over VNC. This keeps CI logs useful by showing whether the VNC client was started, whether it could connect, and why the snapshot failed.
+- Example: `VNC_SCREENSHOT=qemu-screen.ppm VNC_WAIT_SECONDS=5 scripts/qemu-smoketest.sh enzos.iso`
 
 
 
