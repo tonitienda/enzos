@@ -208,7 +208,8 @@ jobs:
               sha: existingSha,
             });
 
-            const imageUrl = response.data.content.download_url ?? '';
+            const imageUrl = response.data.content.download_url
+              || `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${uploadPath}`;
             core.info(`Uploaded VNC screenshot to ${imageUrl}`);
             return { image_url: imageUrl };
 
