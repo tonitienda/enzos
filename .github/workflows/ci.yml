@@ -76,6 +76,7 @@ jobs:
     permissions:
       contents: read
       packages: read
+      pull-requests: write
     env:
       IMAGE: ${{ needs.build-image.outputs.image }}
       IMAGE_TAG: ${{ needs.build-image.outputs.tag }}
@@ -160,3 +161,83 @@ jobs:
           name: enzos-iso
           path: enzos.iso
           if-no-files-found: ignore
+
+      - name: Upload VNC artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-vnc-artifacts
+          path: |
+            qemu-screen.ppm
+            qemu-screen.png
+            qemu-vnc-client.log
+            qemu-vnc-server.log
+            qemu-vga-dump.txt
+          if-no-files-found: ignore
+
+      - name: Prepare PR comment for VNC artifacts
+        if: github.event_name == 'pull_request'
+        id: prepare_vnc_comment
+        run: |
+          set -euo pipefail
+
+          COMMENT_FILE=pr-vnc-comment.md
+          HAS_CONTENT=false
+          echo "## QEMU Smoke Test Artifacts" > "$COMMENT_FILE"
+
+          if [[ -f qemu-screen.ppm ]]; then
+            IMG_SRC=qemu-screen.ppm
+            MIME_TYPE="image/x-portable-pixmap"
+            if command -v convert >/dev/null 2>&1; then
+              convert qemu-screen.ppm qemu-screen.png
+              IMG_SRC=qemu-screen.png
+              MIME_TYPE="image/png"
+            fi
+
+            IMG_B64=$(base64 -w0 "$IMG_SRC")
+            {
+              echo ""
+              echo "### VNC Screenshot"
+              echo "![QEMU VNC Screenshot](data:${MIME_TYPE};base64,${IMG_B64})"
+            } >> "$COMMENT_FILE"
+            HAS_CONTENT=true
+          fi
+
+          append_log_block() {
+            local title="$1"; shift
+            local file="$1"
+            if [[ -f "$file" ]]; then
+              HAS_CONTENT=true
+              {
+                echo ""
+                echo "<details><summary>${title}</summary>"
+                echo ""
+                echo '```'
+                tail -n 200 "$file"
+                echo '```'
+                echo ""
+                echo "</details>"
+              } >> "$COMMENT_FILE"
+            fi
+          }
+
+          append_log_block "VNC Client Log" qemu-vnc-client.log
+          append_log_block "VNC Server Log" qemu-vnc-server.log
+          append_log_block "VGA Text Dump" qemu-vga-dump.txt
+
+          echo "has_content=${HAS_CONTENT}" >> "$GITHUB_OUTPUT"
+
+      - name: Comment PR with VNC artifacts
+        if: github.event_name == 'pull_request' && steps.prepare_vnc_comment.outputs.has_content == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('pr-vnc-comment.md', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
