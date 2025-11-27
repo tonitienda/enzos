@@ -142,7 +142,7 @@ jobs:
             -v "$PWD":/src \
             -w /src \
             enzos-dev \
-            bash -c "./scripts/qemu-smoketest.sh enzos.iso"
+            bash -c "VNC_SCREENSHOT=qemu-screen.ppm VNC_WAIT_SECONDS=5 ./scripts/qemu-smoketest.sh enzos.iso"
 
       - name: Upload VGA dump artifact
         if: always()
