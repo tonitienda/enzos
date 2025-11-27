@@ -160,34 +160,62 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull build and run images
+      - name: Pull build and run images (with local fallback)
         run: |
           set -euo pipefail
 
           pull_image() {
-            local image="$1"
-            local tag="$2"
-            local built="$3"
-            local pushable="$4"
-            local alias="$5"
+            local image="$1" tag="$2" built="$3" pushable="$4" alias="$5"
 
             if [ -z "$image" ]; then
               echo "Image name missing for $alias image" >&2
-              exit 1
+              return 1
             fi
 
+            local ref
             if [ "$built" = "true" ] && [ "$pushable" = "true" ]; then
-              docker pull "${image}:${tag}" || docker pull "${image}:latest"
-              docker tag "${image}:${tag}" "$alias" || docker tag "${image}:latest" "$alias"
+              ref="${image}:${tag}"
             else
-              docker pull "${image}:latest"
-              docker tag "${image}:latest" "$alias"
+              ref="${image}:latest"
             fi
+
+            echo "Pulling $ref for $alias ..."
+            if docker pull "$ref"; then
+              docker tag "$ref" "$alias"
+              return 0
+            fi
+
+            echo "Pull failed for $alias; will try to build locally." >&2
+            return 1
           }
 
+          build_image() {
+            local alias="$1" dockerfile="$2" image="$3" tag="$4"
+            echo "Building $alias from $dockerfile ..."
+            docker build -f "$dockerfile" -t "$image:$tag" -t "$image:latest" .
+            docker tag "$image:$tag" "$alias"
+          }
+
+          declare -A PIDS
           pull_image "${BUILD_IMAGE}" "${BUILD_IMAGE_TAG}" "${BUILD_IMAGE_BUILT}" "${BUILD_IMAGE_PUSHABLE}" enzos-build &
+          PIDS[build]=$!
           pull_image "${RUN_IMAGE}" "${RUN_IMAGE_TAG}" "${RUN_IMAGE_BUILT}" "${RUN_IMAGE_PUSHABLE}" enzos-run &
-          wait
+          PIDS[run]=$!
+
+          declare -A FAILED
+          for key in "${!PIDS[@]}"; do
+            if ! wait "${PIDS[$key]}"; then
+              FAILED[$key]=1
+            fi
+          done
+
+          if ! docker image inspect enzos-build >/dev/null 2>&1; then
+            build_image enzos-build Dockerfile.build-env "${BUILD_IMAGE}" "${BUILD_IMAGE_TAG}"
+          fi
+
+          if ! docker image inspect enzos-run >/dev/null 2>&1; then
+            build_image enzos-run Dockerfile.run-env "${RUN_IMAGE}" "${RUN_IMAGE_TAG}"
+          fi
 
       - name: Verify build environment
         run: docker run --rm enzos-build i686-elf-gcc --version
