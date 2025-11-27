@@ -144,6 +144,16 @@ jobs:
             enzos-dev \
             bash -c "./scripts/qemu-smoketest.sh enzos.iso"
 
+      - name: Upload VGA dump artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-vga-dump
+          path: |
+            qemu-vga-dump.raw.txt
+            qemu-vga-dump.txt
+          if-no-files-found: warn
+
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
