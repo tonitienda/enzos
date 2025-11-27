@@ -19,23 +19,42 @@ require_tools() {
   fi
 }
 
+select_toolchain() {
+  # Prefer a cross compiler when available because it avoids accidentally
+  # picking up host headers or libraries. When the cross tools are missing we
+  # fall back to 32-bit host tools so contributors can still build locally
+  # after installing gcc-multilib and binutils.
+  if command -v i686-elf-gcc >/dev/null 2>&1 && command -v i686-elf-as >/dev/null 2>&1; then
+    export AS=i686-elf-as
+    export CC=i686-elf-gcc
+    EXTRA_CFLAGS=()
+    return
+  fi
+
+  require_tools as gcc
+  export AS="as --32"
+  export CC="gcc -m32"
+  EXTRA_CFLAGS=(-DALLOW_HOST_TOOLCHAIN)
+}
+
 build_objects() {
   echo "[build-elf] Assembling kernel entrypoint..."
-  i686-elf-as "$REPO_ROOT/src/kernel.s" -o "$BUILD_DIR/kernel_entry.o"
+  $AS "$REPO_ROOT/src/kernel.s" -o "$BUILD_DIR/kernel_entry.o"
 
   echo "[build-elf] Compiling kernel..."
-  i686-elf-gcc \
+  $CC \
     -std=gnu99 \
     -ffreestanding \
     -O2 \
     -Wall -Wextra \
+    "${EXTRA_CFLAGS[@]}" \
     -c "$REPO_ROOT/src/kernel.c" \
     -o "$BUILD_DIR/kernel.o"
 }
 
 link_kernel() {
   echo "[build-elf] Linking kernel ELF..."
-  i686-elf-gcc \
+  $CC \
     -T "$REPO_ROOT/linker.ld" \
     -o "$BUILD_DIR/enzos.elf" \
     -ffreestanding \
@@ -46,7 +65,7 @@ link_kernel() {
 }
 
 main() {
-  require_tools i686-elf-as i686-elf-gcc
+  select_toolchain
   mkdir -p "$BUILD_DIR"
 
   build_objects

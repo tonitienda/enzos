@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 /* Check if the compiler thinks you are targeting the wrong operating system. */
-#if defined(__linux__)
+#if defined(__linux__) && !defined(ALLOW_HOST_TOOLCHAIN)
 #error "You are not using a cross-compiler, you will most certainly run into trouble"
 #endif
 
