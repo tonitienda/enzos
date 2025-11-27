@@ -6,6 +6,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VNC_SCREENSHOT="${VNC_SCREENSHOT:-}"
 VNC_PORT="${VNC_PORT:-1}"
 VNC_WAIT_SECONDS="${VNC_WAIT_SECONDS:-3}"
+VNC_BIND_ADDR="${VNC_BIND_ADDR:-0.0.0.0}"
+VNC_CONNECT_ADDR="${VNC_CONNECT_ADDR:-127.0.0.1}"
+VNC_CLIENT_LOG="${VNC_CLIENT_LOG:-qemu-vnc-client.log}"
+QEMU_VNC_LOG="${QEMU_VNC_LOG:-qemu-vnc-server.log}"
 VNC_PIDFILE=""
 
 log() {
@@ -61,36 +65,44 @@ capture_vnc_screenshot() {
     return
   fi
 
-  log "Capturing VNC screenshot to ${VNC_SCREENSHOT} (port ${VNC_PORT})..."
+  local vnc_tcp_port=$((5900 + VNC_PORT))
+  log "Capturing VNC screenshot to ${VNC_SCREENSHOT} (display ${vnc_tcp_port}, bind ${VNC_BIND_ADDR})..."
+  : >"$QEMU_VNC_LOG"
   VNC_PIDFILE="$(mktemp)"
   if ! qemu-system-x86_64 -cdrom "$ISO_PATH" -display none -serial none -parallel none -no-reboot -no-shutdown \
-      -daemonize -pidfile "$VNC_PIDFILE" -vnc "127.0.0.1:${VNC_PORT}" >/dev/null 2>&1; then
+      -daemonize -pidfile "$VNC_PIDFILE" -vnc "${VNC_BIND_ADDR}:${VNC_PORT}" >"$QEMU_VNC_LOG" 2>&1; then
     log "Failed to start QEMU with VNC enabled; skipping screenshot."
+    log "QEMU VNC log saved to: $QEMU_VNC_LOG"
     return 1
   fi
 
   if [[ ! -s "$VNC_PIDFILE" ]]; then
     log "VNC pidfile not created; QEMU may have failed to start."
+    log "QEMU VNC log saved to: $QEMU_VNC_LOG"
     return 1
   fi
 
   if ! kill -0 "$(cat "$VNC_PIDFILE")" 2>/dev/null; then
     log "QEMU process from pidfile is not running; cannot reach VNC server."
+    log "QEMU VNC log saved to: $QEMU_VNC_LOG"
     return 1
   fi
 
-  log "Waiting ${VNC_WAIT_SECONDS}s before attempting vncsnapshot..."
+  log "Waiting ${VNC_WAIT_SECONDS}s before attempting vncsnapshot; connect from the host with:"
+  log "  vncsnapshot ${VNC_CONNECT_ADDR}:${VNC_PORT} out.ppm"
+  log "QEMU VNC log saved to: $QEMU_VNC_LOG"
   sleep "$VNC_WAIT_SECONDS"
-  VNC_OUTPUT_LOG="$(mktemp)"
-  if ! vncsnapshot -quiet "127.0.0.1:${VNC_PORT}" "$VNC_SCREENSHOT" >"$VNC_OUTPUT_LOG" 2>&1; then
+  : >"$VNC_CLIENT_LOG"
+  if ! vncsnapshot -quiet "${VNC_CONNECT_ADDR}:${VNC_PORT}" "$VNC_SCREENSHOT" >"$VNC_CLIENT_LOG" 2>&1; then
     local status=$?
     log "vncsnapshot failed with exit code ${status}; output follows:"
-    cat "$VNC_OUTPUT_LOG" >&2
+    cat "$VNC_CLIENT_LOG" >&2
+    log "vncsnapshot log saved to: $VNC_CLIENT_LOG"
   else
     chmod 644 "$VNC_SCREENSHOT"
     log "Saved VNC screenshot to: $VNC_SCREENSHOT"
+    log "vncsnapshot log saved to: $VNC_CLIENT_LOG"
   fi
-  rm -f "$VNC_OUTPUT_LOG"
 }
 
 if [[ "$VGA_TEXT" == *"EnzOS booted successfully."* ]]; then
