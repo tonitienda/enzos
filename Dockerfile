@@ -29,7 +29,8 @@ RUN apt-get update && \
   grub-pc-bin \
   xorriso \
   mtools \
-  qemu-system-x86 && \
+  qemu-system-x86 \
+  vncsnapshot && \
   rm -rf /var/lib/apt/lists/*
 
 # --------------------------------------------------------------------

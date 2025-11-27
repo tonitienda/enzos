@@ -65,3 +65,7 @@ enzos.iso
 
 # Generated QEMU artifacts
 docs/assets/qemu-vga.png
+qemu-vga-dump.raw.txt
+qemu-vga-dump.txt
+qemu-vnc-client.log
+qemu-vnc-server.log
