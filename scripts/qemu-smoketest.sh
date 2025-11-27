@@ -29,10 +29,8 @@ timeout 20s bash -c "{
 } | qemu-system-x86_64 -cdrom \"$ISO_PATH\" -monitor stdio -serial none -parallel none -display none -no-reboot -no-shutdown" >"$VGA_DUMP"
 
 # Extract printable characters from the dump: every even-positioned byte is a
-# character, and the odd-positioned bytes are color attributes. We use Python
-# instead of awk for portability because some awk implementations (e.g., mawk)
-# omit strtonum.
-VGA_TEXT=$(python3 "$SCRIPT_DIR/qemu_vga_extract.py" "$VGA_DUMP")
+# character, and the odd-positioned bytes are color attributes.
+VGA_TEXT=$(go run "$SCRIPT_DIR/qemu_vga_extract.go" "$VGA_DUMP")
 
 if [[ "$VGA_TEXT" == *"EnzOS booted successfully."* ]]; then
         echo "[qemu-smoketest] VGA boot message detected."
