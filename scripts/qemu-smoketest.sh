@@ -43,6 +43,7 @@ fi
 
 cp "$VGA_DUMP_TMP" "$VGA_RAW_OUT"
 printf "%s\n" "$VGA_TEXT" >"$VGA_TEXT_OUT"
+chmod 644 "$VGA_RAW_OUT" "$VGA_TEXT_OUT"
 
 echo "[qemu-smoketest] Failed to find VGA boot message in QEMU output." >&2
 echo "[qemu-smoketest] VGA text dump follows:" >&2
