@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-image
     permissions:
-      contents: read
+      contents: write
       packages: read
       pull-requests: write
     env:
@@ -82,6 +82,7 @@ jobs:
       IMAGE_TAG: ${{ needs.build-image.outputs.tag }}
       IMAGE_BUILT: ${{ needs.build-image.outputs.built }}
       IMAGE_PUSHABLE: ${{ needs.build-image.outputs.pushable }}
+      PR_IMAGE_NAME: qemu-screen-${{ github.run_id }}-${{ github.run_attempt }}.png
 
     steps:
       - name: Checkout
@@ -158,6 +159,59 @@ jobs:
             convert qemu-screen.ppm qemu-screen.png
           fi
 
+      - name: Upload VNC screenshot to repository
+        id: upload_vnc_image
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            const imagePath = fs.existsSync('qemu-screen.png') ? 'qemu-screen.png' : null;
+            if (!imagePath) {
+              core.info('No VNC screenshot available; skipping repository upload.');
+              return { image_url: '' };
+            }
+
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.info('Not a pull request context; skipping repository upload.');
+              return { image_url: '' };
+            }
+
+            const owner = pr.head.repo.owner.login;
+            const repo = pr.head.repo.name;
+            const branch = pr.head.ref;
+            const uploadPath = `.github/pr-images/${process.env.PR_IMAGE_NAME}`;
+            const content = fs.readFileSync(imagePath).toString('base64');
+
+            let existingSha;
+            try {
+              const existing = await github.rest.repos.getContent({ owner, repo, path: uploadPath, ref: branch });
+              if (!Array.isArray(existing.data)) {
+                existingSha = existing.data.sha;
+              }
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            const response = await github.rest.repos.createOrUpdateFileContents({
+              owner,
+              repo,
+              path: uploadPath,
+              message: `Add PR VNC screenshot for #${pr.number}`,
+              content,
+              branch,
+              sha: existingSha,
+            });
+
+            const imageUrl = response.data.content.download_url ?? '';
+            core.info(`Uploaded VNC screenshot to ${imageUrl}`);
+            return { image_url: imageUrl };
+
       - name: Upload VGA dump artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -198,19 +252,12 @@ jobs:
           HAS_CONTENT=false
           echo "## QEMU Smoke Test Artifacts" > "$COMMENT_FILE"
 
-          if [[ -f qemu-screen.png || -f qemu-screen.ppm ]]; then
-            IMG_SRC=qemu-screen.png
-            MIME_TYPE="image/png"
-            if [[ ! -f "$IMG_SRC" ]]; then
-              IMG_SRC=qemu-screen.ppm
-              MIME_TYPE="image/x-portable-pixmap"
-            fi
-
-            IMG_B64=$(base64 -w0 "$IMG_SRC")
+          IMAGE_URL="${{ steps.upload_vnc_image.outputs.image_url }}"
+          if [[ -n "$IMAGE_URL" ]]; then
             {
               echo ""
               echo "### VNC Screenshot"
-              echo "![QEMU VNC Screenshot](data:${MIME_TYPE};base64,${IMG_B64})"
+              echo "![QEMU VNC Screenshot](${IMAGE_URL})"
             } >> "$COMMENT_FILE"
             HAS_CONTENT=true
           fi
