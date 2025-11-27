@@ -20,6 +20,7 @@ RUN apt-get update && \
   xz-utils \
   ca-certificates \
   git \
+  golang-go \
   make \
   socat \
   nasm \
