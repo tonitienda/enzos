@@ -176,7 +176,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Prepare PR comment for VNC artifacts
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
         id: prepare_vnc_comment
         run: |
           set -euo pipefail
@@ -228,7 +228,7 @@ jobs:
           echo "has_content=${HAS_CONTENT}" >> "$GITHUB_OUTPUT"
 
       - name: Comment PR with VNC artifacts
-        if: github.event_name == 'pull_request' && steps.prepare_vnc_comment.outputs.has_content == 'true'
+        if: always() && github.event_name == 'pull_request' && steps.prepare_vnc_comment.outputs.has_content == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
