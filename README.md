@@ -99,6 +99,7 @@ qemu-system-x86_64 -cdrom enzos.iso -serial stdio -no-reboot -no-shutdown
 ## VNC Screenshot Capture
 
 - Set `VNC_SCREENSHOT` when running `scripts/qemu-smoketest.sh` to expose a temporary VNC server while the guest boots and to record what the guest draws. QEMU binds to `${VNC_BIND_ADDR}:${VNC_PORT}` (default `0.0.0.0:1`, which maps to TCP 5901) so the CI runner can connect directly.
+- The dev container now installs `vncsnapshot`, so CI runners can capture the framebuffer even when the smoketest runs inside Docker. Install the package locally if you run the smoketest on bare metal.
 - When you run the smoketest inside Docker, publish the TCP port so the host can reach VNC: `VNC_SCREENSHOT=qemu-screen.ppm VNC_PORT=1 just smoketest`. Change `VNC_PORT` to avoid clashes and the port mapping follows automatically.
 - The script keeps `qemu-vnc-server.log` and `qemu-vnc-client.log` so you can read the handshake attempts and error traces even when the snapshot fails. These logs make it easier to debug why a remote VNC client could not connect.
 
