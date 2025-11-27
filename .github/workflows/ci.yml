@@ -145,6 +145,19 @@ jobs:
             enzos-dev \
             bash -c "VNC_SCREENSHOT=qemu-screen.ppm VNC_WAIT_SECONDS=5 ./scripts/qemu-smoketest.sh enzos.iso"
 
+      - name: Install ImageMagick for PR screenshot rendering
+        if: always()
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
+      - name: Convert VNC screenshot to PNG
+        if: always()
+        run: |
+          if [[ -f qemu-screen.ppm ]]; then
+            convert qemu-screen.ppm qemu-screen.png
+          fi
+
       - name: Upload VGA dump artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -185,13 +198,12 @@ jobs:
           HAS_CONTENT=false
           echo "## QEMU Smoke Test Artifacts" > "$COMMENT_FILE"
 
-          if [[ -f qemu-screen.ppm ]]; then
-            IMG_SRC=qemu-screen.ppm
-            MIME_TYPE="image/x-portable-pixmap"
-            if command -v convert >/dev/null 2>&1; then
-              convert qemu-screen.ppm qemu-screen.png
-              IMG_SRC=qemu-screen.png
-              MIME_TYPE="image/png"
+          if [[ -f qemu-screen.png || -f qemu-screen.ppm ]]; then
+            IMG_SRC=qemu-screen.png
+            MIME_TYPE="image/png"
+            if [[ ! -f "$IMG_SRC" ]]; then
+              IMG_SRC=qemu-screen.ppm
+              MIME_TYPE="image/x-portable-pixmap"
             fi
 
             IMG_B64=$(base64 -w0 "$IMG_SRC")

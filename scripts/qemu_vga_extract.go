@@ -15,10 +15,40 @@ import (
 	"strings"
 )
 
-var hexBytePattern = regexp.MustCompile(`0x?([0-9a-fA-F]{2})`)
+const (
+	vgaColumns = 80
+)
+
+var (
+	hexBytePattern   = regexp.MustCompile(`0x?([0-9a-fA-F]{2})`)
+	addressLineStart = regexp.MustCompile(`^[0-9a-fA-F]+:`)
+)
+
+func extractDumpRegion(contents string) string {
+	lines := strings.Split(contents, "\n")
+
+	start := -1
+	for idx, line := range lines {
+		if addressLineStart.MatchString(strings.TrimSpace(line)) {
+			start = idx
+			break
+		}
+	}
+
+	if start == -1 {
+		return ""
+	}
+
+	return strings.Join(lines[start:], "\n")
+}
 
 func extractCharacters(contents string) (string, error) {
-	matches := hexBytePattern.FindAllStringSubmatch(contents, -1)
+	region := extractDumpRegion(contents)
+	if region == "" {
+		return "", fmt.Errorf("no VGA dump lines found")
+	}
+
+	matches := hexBytePattern.FindAllStringSubmatch(region, -1)
 
 	var builder strings.Builder
 	for index, match := range matches {
@@ -38,7 +68,21 @@ func extractCharacters(contents string) (string, error) {
 		builder.WriteRune(rune(value))
 	}
 
-	return builder.String(), nil
+	characters := builder.String()
+	if characters == "" {
+		return "", nil
+	}
+
+	var formatted []string
+	for start := 0; start < len(characters); start += vgaColumns {
+		end := start + vgaColumns
+		if end > len(characters) {
+			end = len(characters)
+		}
+		formatted = append(formatted, strings.TrimRight(characters[start:end], " "))
+	}
+
+	return strings.Join(formatted, "\n"), nil
 }
 
 func usage() {
