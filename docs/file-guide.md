@@ -33,16 +33,17 @@ This guide summarizes the current files in EnzOS and how they help you explore b
 
 ## Scripts (scripts/)
 
-These helpers are scaffolding—you will flesh them out as the OS grows. Each script currently prints a TODO so you know where to plug in future logic.
+These helpers automate the host-side flow so you can stay focused on kernel behavior instead of tool plumbing.
 
-- **build-iso.sh** – Will compile the assembly and C kernel objects, link them, stage a GRUB configuration, and invoke `grub-mkrescue` to produce `enzos.iso`. Requires the cross-compiler and GRUB utilities available inside the Docker image.
-- **qemu-smoketest.sh** – Will boot the generated ISO in headless QEMU, stream serial output, and check for the success message to automate regression testing.
+- **build-elf.sh** – Picks a toolchain automatically: it prefers the i686 cross compiler from the Docker image but falls back to `gcc -m32` and `as --32` when you install `gcc-multilib` locally. When it uses the host toolchain it defines `ALLOW_HOST_TOOLCHAIN` so the kernel sources compile without the tutorial guardrails.
+- **build-iso.sh** – Compiles the kernel, links it, stages the GRUB configuration, and invokes `grub-mkrescue` to produce `enzos.iso`. It requires GRUB utilities plus xorriso and mtools; installing the Docker image or the matching host packages keeps the flow reproducible for learners.
+- **qemu-smoketest.sh** – Boots the ISO headlessly, dumps the VGA text buffer, and looks for `"EnzOS booted successfully."`. Set `VNC_SCREENSHOT=docs/assets/qemu-vga.png` to start a temporary VNC server and capture the framebuffer for visual debugging; the screenshot path is gitignored so learners do not accidentally commit large artifacts.
 - **run-tests.sh** – Placeholder for unit or integration tests you add later (for example, libc-like helpers or kernel subsystems).
 
   ```bash
-  # Expected usage patterns once implemented
+  # Common usage while experimenting with the boot flow
   ./scripts/build-iso.sh
-  ./scripts/qemu-smoketest.sh enzos.iso
+  VNC_SCREENSHOT=docs/assets/qemu-vga.png ./scripts/qemu-smoketest.sh enzos.iso
   ./scripts/run-tests.sh
   ```
 

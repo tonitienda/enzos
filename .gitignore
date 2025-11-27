@@ -62,3 +62,6 @@ dkms.conf
 build
 iso-root
 enzos.iso
+
+# Generated QEMU artifacts
+docs/assets/qemu-vga.png
