@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	hexBytePattern   = regexp.MustCompile(`0x?([0-9a-fA-F]{2})`)
+	hexBytePattern   = regexp.MustCompile(`\b0x?([0-9a-fA-F]{2})\b`)
 	addressLineStart = regexp.MustCompile(`^[0-9a-fA-F]+:`)
 )
 
