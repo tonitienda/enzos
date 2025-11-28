@@ -252,6 +252,27 @@ jobs:
             enzos-run \
             bash -c "VNC_SCREENSHOT=qemu-screen.ppm VNC_WAIT_SECONDS=5 ./scripts/qemu-smoketest.sh enzos.iso"
 
+      - name: Validate VGA dump artifacts
+        if: always()
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f qemu-vga-dump.raw.txt ]]; then
+            echo "Missing qemu-vga-dump.raw.txt; smoke test did not produce a VGA dump." >&2
+            exit 1
+          fi
+
+          VGA_TEXT=$(docker run --rm \
+            -v "$PWD":/src \
+            -w /src \
+            enzos-run \
+            bash -c "go run scripts/qemu_vga_extract.go qemu-vga-dump.raw.txt")
+
+          if [[ "$VGA_TEXT" != *"EnzOS booted successfully."* ]]; then
+            echo "Boot message not found in qemu-vga-dump.raw.txt: EnzOS booted successfully." >&2
+            exit 1
+          fi
+
       - name: Convert VNC screenshot to PNG
         if: always()
         run: |
