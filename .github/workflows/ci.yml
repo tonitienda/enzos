@@ -1,9 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - "**" # all branches; tighten later if you want
   pull_request:
 
 permissions:
