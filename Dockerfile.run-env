@@ -1,0 +1,20 @@
+FROM --platform=linux/amd64 ubuntu:24.04
+
+# Avoid interactive prompts during install (e.g. tzdata)
+ENV DEBIAN_FRONTEND=noninteractive
+
+# --------------------------------------------------------------------
+# Runtime dependencies for QEMU smoke tests and artifact processing
+# --------------------------------------------------------------------
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
+  ca-certificates \
+  golang-go \
+  imagemagick \
+  qemu-system-x86 \
+  vncsnapshot && \
+  rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+
+CMD ["/bin/bash"]
