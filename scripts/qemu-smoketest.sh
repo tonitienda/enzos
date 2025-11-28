@@ -42,6 +42,7 @@ trap cleanup EXIT
 VGA_DUMP_TMP="$(mktemp)"
 VGA_RAW_OUT="${VGA_RAW_OUT:-qemu-vga-dump.raw.txt}"
 VGA_TEXT_OUT="${VGA_TEXT_OUT:-qemu-vga-dump.txt}"
+VGA_BOOT_MESSAGE="EnzOS booted successfully."
 
 rm -f "$VGA_RAW_OUT" "$VGA_TEXT_OUT"
 
@@ -60,6 +61,10 @@ timeout 20s bash -c "{
 # Extract printable characters from the dump: every even-positioned byte is a
 # character, and the odd-positioned bytes are color attributes.
 VGA_TEXT=$(go run "$SCRIPT_DIR/qemu_vga_extract.go" "$VGA_DUMP_TMP")
+
+cp "$VGA_DUMP_TMP" "$VGA_RAW_OUT"
+printf "%s\n" "$VGA_TEXT" >"$VGA_TEXT_OUT"
+chmod 644 "$VGA_RAW_OUT" "$VGA_TEXT_OUT"
 
 capture_vnc_screenshot() {
   if [[ -z "$VNC_SCREENSHOT" ]]; then
@@ -116,15 +121,11 @@ capture_vnc_screenshot() {
   fi
 }
 
-if [[ "$VGA_TEXT" == *"EnzOS booted successfully."* ]]; then
+if [[ "$VGA_TEXT" == *"$VGA_BOOT_MESSAGE"* ]]; then
   log "VGA boot message detected."
   capture_vnc_screenshot
   exit 0
 fi
-
-cp "$VGA_DUMP_TMP" "$VGA_RAW_OUT"
-printf "%s\n" "$VGA_TEXT" >"$VGA_TEXT_OUT"
-chmod 644 "$VGA_RAW_OUT" "$VGA_TEXT_OUT"
 
 capture_vnc_screenshot
 
