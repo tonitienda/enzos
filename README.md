@@ -1,10 +1,12 @@
 # enzos
+
 EnzOS - tiny OS for learning purposes
+
+![EnzOS splash screen](docs/splash-screen.png)
 
 ## EnzOS — Milestone 0
 
 “Boots, prints text, builds in CI, releases ISO”
-
 
 ---
 
@@ -29,6 +31,7 @@ enzos/
       └── build-iso.sh
 
 ```
+
 ---
 
 2️⃣ Implement Minimal Kernel (60–120 min)
@@ -36,11 +39,10 @@ enzos/
 kernel_entry.s
 
 - [x] Add Multiboot or Multiboot2 header
-- [x] Define _start
+- [x] Define \_start
 - [x] Set up stack
 - [x] Call kmain()
 - [x] Halt in infinite loop
-
 
 kernel.c
 
@@ -49,14 +51,11 @@ kernel.c
 - [x] Write string: "EnzOS boot OK!"
 - [x] Infinite loop
 
-
 linker.ld
 
-- [x] Define ENTRY(_start)
+- [x] Define ENTRY(\_start)
 - [x] Place .text, .rodata, .data, .bss
 - [x] Set load address (e.g. 0x100000)
-
-
 
 ---
 
@@ -68,8 +67,6 @@ grub/grub.cfg
 - [x] Create menu entry "EnzOS"
 - [x] Use multiboot2 /boot/enzos.elf (or multiboot)
 - [x] Call boot
-
-
 
 ---
 
@@ -85,15 +82,16 @@ scripts/build-iso.sh
 - [x] Copy grub.cfg into iso-root/boot/grub/
 - [x] Run grub-mkrescue -o enzos.iso iso-root/
 
-
 ---
 
 5️⃣ Local Test (5–10 min)
 
 - [ ] Boot locally in QEMU:
+
 ```
 qemu-system-x86_64 -cdrom enzos.iso -serial stdio -no-reboot -no-shutdown
 ```
+
 - [ ] Verify "EnzOS boot OK!" appears
 
 ## VNC Screenshot Capture
@@ -102,8 +100,6 @@ qemu-system-x86_64 -cdrom enzos.iso -serial stdio -no-reboot -no-shutdown
 - Prefer capturing the screenshot from the host (outside Docker) so CI can upload it to the PR: `VNC_SCREENSHOT=qemu-screen.ppm VNC_CAPTURE_MODE=external VNC_EXTERNAL_CAPTURE_WAIT=20 just smoketest`. The recipe defaults to `VNC_CAPTURE_MODE=external` and forwards the VNC port to make this easy.
 - If you want the container to take the screenshot itself, set `VNC_CAPTURE_MODE=internal`; `vncsnapshot` is installed in the dev image but must be installed locally for bare-metal runs.
 - The script keeps `qemu-vnc-server.log` and `qemu-vnc-client.log` so you can read the handshake attempts and error traces even when the snapshot fails. These logs make it easier to debug why a remote VNC client could not connect.
-
-
 
 ---
 
@@ -116,7 +112,6 @@ CI Setup
 - [x] Run scripts/build-iso.sh
 - [x] Run scripts/qemu-smoketest.sh enzos.iso
 
-
 scripts/qemu-smoketest.sh
 
 - [x] Run QEMU headless with timeout
@@ -124,8 +119,6 @@ scripts/qemu-smoketest.sh
 - [ ] Check for "EnzOS boot OK!"
 - [x] Exit 0 if found, else exit 1
 - [ ] Verify CI goes red → fix → green
-
-
 
 ---
 
@@ -137,6 +130,7 @@ scripts/qemu-smoketest.sh
 - [x] Create GitHub Release
 - [x] Upload enzos.iso
 - [ ] Create first release tag (v0.0.1)
+
 ---
 
 ⭐ Optional Extras
@@ -158,6 +152,5 @@ Once all tasks are checked, EnzOS can:
 - Build reproducibly
 - Boot automatically in CI
 - Release tagged ISOs
-
 
 You’re officially an OS developer 🚀
