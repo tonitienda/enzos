@@ -3,27 +3,25 @@ colima:
     colima start --profile colima-x86 --arch x86_64 --cpu 8 --memory 16 --vz-rosetta
 
 prepare:
-    docker build -t enzos-dev \
-            --platform="linux/amd64" \
-            --build-arg MAKE_JOBS=1 \
-            .
+    docker pull ghcr.io/tonitienda/enzos-build:latest
+    docker pull ghcr.io/tonitienda/enzos-run:latest
 
 doctor:
-    docker run --rm enzos-dev i686-elf-gcc --version
+    docker run --rm enzos-build i686-elf-gcc --version
 
 build-kernel:
     docker run --rm \
             -v "$PWD":/src \
             -w /src \
-            enzos-dev \
+            enzos-build \
             bash -c "./scripts/build-elf.sh"
 
 build-iso:
     docker run --rm \
             -v "$PWD":/src \
             -w /src \
-            enzos-dev \
-            bash -c "./scripts/build-elf.sh && ./scripts/build-iso.sh"
+            enzos-build \
+            bash -c "./scripts/build-iso.sh"
 
 smoketest:
     docker run --rm \
@@ -43,13 +41,6 @@ smoketest:
             bash -c "./scripts/qemu-smoketest.sh enzos.iso"
 
 enzos:
-    # Set VNC_PASSWORD in your environment to override the default
-    docker run --rm \
-            -v "$PWD":/src \
-            -w /src \
-            -e VNC_PASSWORD="${VNC_PASSWORD:-enzos}" \
-            enzos-dev \
-            bash -c "./scripts/build-elf.sh && ./scripts/build-iso.sh"
     PW=${VNC_PASSWORD:-enzos}
     ISO=enzos.iso
     qemu-system-x86_64 -cdrom "$ISO" \
