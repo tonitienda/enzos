@@ -91,7 +91,8 @@ void terminal_putchar(char c)
 		if (++terminal_row == VGA_HEIGHT) {
 			terminal_row = 0;
 		}
-	}
+		return;
+	} 
 	terminal_putentryat(c, terminal_color, terminal_column, terminal_row);
 	if (++terminal_column == VGA_WIDTH) {
 		terminal_column = 0;
@@ -115,6 +116,16 @@ void kernel_main(void)
 {
 	/* Initialize terminal interface */
 	terminal_initialize();
-
+	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_BLUE, VGA_COLOR_BLACK);
+	terminal_writestring("\n");	                         
+	terminal_writestring("EEEEE N   N ZZZZZ  OOO   SSSS \n");
+	terminal_writestring("E     NN  N    Z  O   O S     \n");
+	terminal_writestring("EEEE  N N N   Z   O   O  SSS  \n");
+	terminal_writestring("E     N  NN  Z    O   O     S \n");
+	terminal_writestring("EEEEE N   N ZZZZZ  OOO  SSSS  \n");
+                          
+	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
 	terminal_writestring("EnzOS booted successfully.\n");
+	terminal_writestring("\n");
+	terminal_writestring("$ _");
 }
