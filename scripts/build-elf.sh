@@ -3,6 +3,8 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$REPO_ROOT/build"
+EXTRA_CFLAGS=()
+LIBS=()
 
 require_tools() {
   local missing=()
@@ -27,7 +29,7 @@ select_toolchain() {
   if command -v i686-elf-gcc >/dev/null 2>&1 && command -v i686-elf-as >/dev/null 2>&1; then
     export AS=i686-elf-as
     export CC=i686-elf-gcc
-    EXTRA_CFLAGS=()
+    LIBS=(-lgcc)
     return
   fi
 
@@ -35,6 +37,7 @@ select_toolchain() {
   export AS="as --32"
   export CC="gcc -m32"
   EXTRA_CFLAGS=(-DALLOW_HOST_TOOLCHAIN)
+  LIBS=()
 }
 
 build_objects() {
@@ -50,6 +53,16 @@ build_objects() {
     "${EXTRA_CFLAGS[@]}" \
     -c "$REPO_ROOT/src/kernel.c" \
     -o "$BUILD_DIR/kernel.o"
+
+  echo "[build-elf] Compiling terminal driver..."
+  $CC \
+    -std=gnu99 \
+    -ffreestanding \
+    -O2 \
+    -Wall -Wextra \
+    "${EXTRA_CFLAGS[@]}" \
+    -c "$REPO_ROOT/src/drivers/terminal.c" \
+    -o "$BUILD_DIR/terminal.o"
 }
 
 link_kernel() {
@@ -60,8 +73,8 @@ link_kernel() {
     -ffreestanding \
     -O2 \
     -nostdlib \
-    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" \
-    -lgcc
+    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" "$BUILD_DIR/terminal.o" \
+    "${LIBS[@]}"
 }
 
 main() {

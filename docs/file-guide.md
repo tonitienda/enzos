@@ -29,7 +29,8 @@ This guide summarizes the current files in EnzOS and how they help you explore b
 ## Kernel Sources (src/)
 
 - **kernel.s** – Multiboot-compliant entrypoint. It installs the multiboot header, sets up a 16 KiB aligned stack, jumps into `kernel_main`, and halts safely if execution ever returns. Reading through the comments gives context on protected-mode expectations before C code runs.
-- **kernel.c** – Minimal VGA text driver and the first C-level `kernel_main` implementation. It initializes an 80x25 text buffer and writes `"EnzOS booted successfully."` so you can visually confirm boot progress.
+- **kernel.c** – C-level `kernel_main` implementation that focuses on boot messaging. It initializes the terminal driver, chooses colors, and writes strings so you can visually confirm boot progress without mixing rendering details into control flow.
+- **drivers/terminal.c** and **drivers/terminal.h** – A dedicated VGA text driver that exposes helper functions for setting colors and writing strings. Keeping this logic in its own module makes it easier for learners to experiment with text output while keeping the kernel entrypoint concise.
 
 ## Scripts (scripts/)
 
