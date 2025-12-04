@@ -23,7 +23,10 @@ EnzOS - tiny OS for learning purposes
 enzos/
  ├── src/
  │    ├── kernel_entry.s
- │    └── kernel.c
+ │    ├── kernel.c
+ │    └── drivers/
+ │         ├── terminal.c
+ │         └── terminal.h
  ├── linker.ld
  ├── grub/
  │    └── grub.cfg
@@ -47,8 +50,8 @@ kernel_entry.s
 kernel.c
 
 - [x] Implement kmain()
-- [x] Get VGA buffer pointer (0xB8000)
-- [x] Write string: "EnzOS boot OK!"
+- [x] Initialize the terminal driver from `drivers/terminal.c` using helper APIs for color and cursor management.
+- [x] Keep presentation text in one place while delegating VGA writes to the driver for clarity.
 - [x] Infinite loop
 
 linker.ld
@@ -76,7 +79,7 @@ scripts/build-iso.sh
 
 - [x] Create build/ and iso-root/ directories
 - [x] Assemble kernel_entry.s → kernel_entry.o
-- [x] Compile kernel.c → kernel.o
+- [x] Compile kernel.c and `drivers/terminal.c` → kernel.o and terminal.o
 - [x] Link → build/enzos.elf with linker.ld
 - [x] Copy enzos.elf into iso-root/boot/
 - [x] Copy grub.cfg into iso-root/boot/grub/
