@@ -13,26 +13,43 @@
 #error "This tutorial needs to be compiled with a ix86-elf compiler"
 #endif
 
-
 void enzos_splash(void) {
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK));
-
-    terminal_writestring("\n\n");
-    terminal_writestring("                 .-\"\"\"\"-.\n");
-    terminal_writestring("             _.-\"        `-.__\n");
-    terminal_writestring("          .-'                 `-.\n");
-    terminal_writestring("        .'                       `.\n");
-    terminal_writestring("       /      Enz                  \\\n");
-    terminal_writestring("      /        OS                  |\n");
-    terminal_writestring("     ;                              ;\n");
-    terminal_writestring("     |                              |\n");
-    terminal_writestring("     ;                              ;\n");
-    terminal_writestring("      \\                            /\n");
-    terminal_writestring("       \\          .-------.      /\n");
-    terminal_writestring("        `.       /  _.._   `-. .'\n");
-    terminal_writestring("          `-.   /.-'    `-.   `-.\n");
-    terminal_writestring("             `\"\"           `---'\n");
-    terminal_writestring("\n");
+    terminal_writestring(
+"                                                                 \n"
+"                                                                 \n"
+"                                                                 \n"
+"                               ..:.                             \n"
+"                       .::-=+**#%#*+=--:. .                     \n"
+"                  .:=+##%%%%%###%#**++=-=+***+-.                \n"
+"                .=#%%%%%#*=-::.......  ..-*%%%%%#-              \n"
+"             .:=#%%%%*-:                  :+%%%%%%#-            \n"
+"            :=#%%%#+:                       :+%%%%%%+           \n"
+"          .-*%%#%+.                           :*%%%%%*          \n"
+"          =#%%%%-                               +%%%%%+         \n"
+"         -#%#%#:                                .#%%%%%-        \n"
+"        :#%%%%-                                  -%%%%%+        \n"
+"        *%%%%*                                    #%%%%#.       \n"
+"       .%%%%%=                                    +%%%%%=       \n"
+"       :%%%%%-                                    +%%%%%=       \n"
+"       +%%%%%+                                    +%%%%%+       \n"
+"       +%%%%%+                                    +%%%%%+       \n"
+"       :*%%%%*                                   :%%%%%#.       \n"
+"       .=#%%%%-                                  *%%%%%=        \n"
+"        -##%%%#:                                =%%%%%#.        \n"
+"         =%%%%%#-                              -%%%%%%:         \n"
+"          =%%%%%%*:                          .+#%%%%%:          \n"
+"           -%%%%%%%*-.                      :*%%%%%#:           \n"
+"            :*%%%%%%%%*=-..                :*%%%%%+.            \n"
+"              -#%%%%%%%%%%%##*=.         :+#%%%%*-              \n"
+"                -+%%%%%%%%%%%%%%:      :=**++*=:                \n"
+"                  .-*#%%%%%%%%%*.     ..:::-:.                  \n"
+"                      .-=+**+=:         .                       \n"
+"                                                                 \n"
+"                                                                 \n"
+"                                                                 \n"
+"                                                                 \n"
+    );
 }
 
 void kernel_main(void) 
