@@ -14,7 +14,7 @@
 #endif
 
 void enzos_splash(void) {
-    terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK));
+    terminal_setcolor(vga_entry_color(VGA_COLOR_WHITE , VGA_COLOR_BLACK));
     terminal_writestring(
 "                       \n"
 "                       .                    \n"
