@@ -15,26 +15,25 @@
 
 
 void enzos_splash(void) {
-    /* Light cyan on black, tweak as you like */
     terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK));
 
     terminal_writestring("\n\n");
-    terminal_writestring("                     .-\"\"\"\"-.\n");
-    terminal_writestring("                  .-'  .--.  `-.\n");
-    terminal_writestring("                .'   .'    `.   `.\n");
-    terminal_writestring("               /   .'  ____  `.   \\\n");
-    terminal_writestring("              /   /  .\"    \".  \\   \\\n");
-    terminal_writestring("             ;   /  /  Enz  \\  \\   ;\n");
-    terminal_writestring("             |  ;  |   OS    |  ;  |\n");
-    terminal_writestring("             ;   \\  \\        /  /   ;\n");
-    terminal_writestring("              \\   \\  \"-.  .-\"  /   /\n");
-    terminal_writestring("               \\   `.   \"\"   .'   /\n");
-    terminal_writestring("                `.   `-.__.-'   .'\n");
-    terminal_writestring("                  `-.       .-'\n");
-    terminal_writestring("                     `-...-'\n");
+    terminal_writestring("                 .-\"\"\"\"-.\n");
+    terminal_writestring("             _.-\"        `-.__\n");
+    terminal_writestring("          .-'                 `-.\n");
+    terminal_writestring("        .'                       `.\n");
+    terminal_writestring("       /      Enz                  \\\n");
+    terminal_writestring("      /        OS                  |\n");
+    terminal_writestring("     ;                              ;\n");
+    terminal_writestring("     |                              |\n");
+    terminal_writestring("     ;                              ;\n");
+    terminal_writestring("      \\                            /\n");
+    terminal_writestring("       \\          .-------.      /\n");
+    terminal_writestring("        `.       /  _.._   `-. .'\n");
+    terminal_writestring("          `-.   /.-'    `-.   `-.\n");
+    terminal_writestring("             `\"\"           `---'\n");
     terminal_writestring("\n");
 }
-
 
 void kernel_main(void) 
 {
