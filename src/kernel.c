@@ -14,18 +14,34 @@
 #endif
 
 
+void enzos_splash(void) {
+    /* Light cyan on black, tweak as you like */
+    terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_CYAN, VGA_COLOR_BLACK));
+
+    terminal_writestring("\n\n");
+    terminal_writestring("                     .-\"\"\"\"-.\n");
+    terminal_writestring("                  .-'  .--.  `-.\n");
+    terminal_writestring("                .'   .'    `.   `.\n");
+    terminal_writestring("               /   .'  ____  `.   \\\n");
+    terminal_writestring("              /   /  .\"    \".  \\   \\\n");
+    terminal_writestring("             ;   /  /  Enz  \\  \\   ;\n");
+    terminal_writestring("             |  ;  |   OS    |  ;  |\n");
+    terminal_writestring("             ;   \\  \\        /  /   ;\n");
+    terminal_writestring("              \\   \\  \"-.  .-\"  /   /\n");
+    terminal_writestring("               \\   `.   \"\"   .'   /\n");
+    terminal_writestring("                `.   `-.__.-'   .'\n");
+    terminal_writestring("                  `-.       .-'\n");
+    terminal_writestring("                     `-...-'\n");
+    terminal_writestring("\n");
+}
+
+
 void kernel_main(void) 
 {
 	/* Initialize terminal interface */
 	terminal_initialize();
-	terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_BLUE, VGA_COLOR_BLACK));
-	terminal_writestring("\n");	                         
-	terminal_writestring("EEEEE N   N ZZZZZ  OOO   SSSS \n");
-	terminal_writestring("E     NN  N    Z  O   O S     \n");
-	terminal_writestring("EEEE  N N N   Z   O   O  SSS  \n");
-	terminal_writestring("E     N  NN  Z    O   O     S \n");
-	terminal_writestring("EEEEE N   N ZZZZZ  OOO  SSSS  \n");
-                          
+        enzos_splash();
+
 	terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
 	terminal_writestring("EnzOS booted successfully.\n");
 	terminal_writestring("\n");
