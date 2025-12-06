@@ -1,6 +1,9 @@
 name: Integration Test
-description: Run integration tests and capture VNC snapshots.
+description: Run integration tests and capture VNC snapshots against a running VM.
 inputs:
+  container-name:
+    description: Name of the container hosting the running VM.
+    required: true
   qemu-monitor-addr:
     description: Address used by the QEMU monitor.
     required: false
@@ -19,47 +22,38 @@ runs:
     - name: Run integration tests
       shell: bash
       run: |
-        docker run --rm \
-          -e QEMU_MONITOR_ADDR="${{ inputs.qemu-monitor-addr }}" \
-          -e VNC_PORT="${{ inputs.vnc-port }}" \
-          -e VNC_CONNECT_ADDR="${{ inputs.vnc-connect-addr }}" \
-          -v "$PWD":/src \
-          -w /src \
-          enzos-run \
-          bash -c '
-            set -euo pipefail
+        set -euo pipefail
 
-            export QEMU_PIDFILE=/tmp/qemu-integration.pid
-            export QEMU_KEEP_ALIVE=true
-            export QEMU_VNC_LOG=qemu-vnc-server-integration.log
-            export VNC_PORT="${VNC_PORT:-1}"
-            export VNC_CONNECT_ADDR="${VNC_CONNECT_ADDR:-127.0.0.1}"
+        docker exec "${{ inputs.container-name }}" bash -c '
+          set -euo pipefail
 
-            # Boot the VM but defer screenshots until after the integration tests.
-            VNC_SCREENSHOT="" ./scripts/qemu-smoketest.sh enzos.iso
+          export QEMU_MONITOR_ADDR="${QEMU_MONITOR_ADDR:-${{ inputs.qemu-monitor-addr }}}"
+          export VNC_PORT="${VNC_PORT:-${{ inputs.vnc-port }}}"
+          export VNC_CONNECT_ADDR="${VNC_CONNECT_ADDR:-${{ inputs.vnc-connect-addr }}}"
+          export QEMU_KEEP_ALIVE=true
+          export QEMU_VNC_LOG=qemu-vnc-server-integration.log
+          export VNC_WAIT_SECONDS=${VNC_WAIT_SECONDS:-2}
 
-            if [[ ! -f "$QEMU_PIDFILE" || ! -s "$QEMU_PIDFILE" ]]; then
-              echo "QEMU pidfile missing after boot; cannot run integration tests." >&2
-              exit 1
-            fi
+          go run ./scripts/cmd/qemu_monitor_client -mode wait -addr "$QEMU_MONITOR_ADDR" -timeout 15s
 
-            if ! kill -0 "$(cat "$QEMU_PIDFILE")" 2>/dev/null; then
-              echo "QEMU process not running after boot (pidfile: $QEMU_PIDFILE)." >&2
-              exit 1
-            fi
+          if [[ -n "$QEMU_PIDFILE" && ! -f "$QEMU_PIDFILE" ]]; then
+            echo "QEMU pidfile missing at $QEMU_PIDFILE; cannot run integration tests." >&2
+            exit 1
+          fi
 
-            go run ./scripts/cmd/qemu_monitor_client -mode wait -addr "${QEMU_MONITOR_ADDR:-127.0.0.1:45454}" -timeout 15s
+          if ! kill -0 "$(cat "$QEMU_PIDFILE")" 2>/dev/null; then
+            echo "QEMU process not running after boot (pidfile: $QEMU_PIDFILE)." >&2
+            exit 1
+          fi
 
-            go test ./scripts -count=1 -v -test.timeout=5m
+          go test ./scripts -count=1 -v -test.timeout=5m
 
-            export VNC_SCREENSHOT=qemu-screen-integration.ppm
-            export VNC_CLIENT_LOG=qemu-vnc-client-integration.log
-            ./scripts/capture-vnc.sh
+          export VNC_SCREENSHOT=qemu-screen-integration.ppm
+          export VNC_CLIENT_LOG=qemu-vnc-client-integration.log
+          ./scripts/capture-vnc.sh
 
-            export VNC_SCREENSHOT=qemu-screen-integration-terminal.ppm
-            export VNC_CLIENT_LOG=qemu-vnc-client-integration-terminal.log
-            export VNC_WAIT_SECONDS=3
-            ./scripts/capture-vnc.sh
-
-            go run ./scripts/cmd/qemu_monitor_client -mode exec -addr "${QEMU_MONITOR_ADDR:-127.0.0.1:45454}" -cmd quit || true
-          '
+          export VNC_SCREENSHOT=qemu-screen-integration-terminal.ppm
+          export VNC_CLIENT_LOG=qemu-vnc-client-integration-terminal.log
+          export VNC_WAIT_SECONDS=3
+          ./scripts/capture-vnc.sh
+        '

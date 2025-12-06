@@ -69,10 +69,12 @@ jobs:
       RUN_IMAGE_TAG: ${{ needs.build-run-env.outputs.tag }}
       RUN_IMAGE_BUILT: ${{ needs.build-run-env.outputs.built }}
       RUN_IMAGE_PUSHABLE: ${{ needs.build-run-env.outputs.pushable }}
+      QEMU_CONTAINER_NAME: enzos-qemu-${{ github.run_id }}-${{ github.run_attempt }}
       PR_SMOKE_IMAGE_NAME: qemu-screen-smoke-${{ github.run_id }}-${{ github.run_attempt }}.png
       PR_INTEGRATION_IMAGE_NAME: qemu-screen-integration-${{ github.run_id }}-${{ github.run_attempt }}.png
       PR_INTEGRATION_TERMINAL_IMAGE_NAME: qemu-screen-integration-terminal-${{ github.run_id }}-${{ github.run_attempt }}.png
       QEMU_MONITOR_ADDR: 127.0.0.1:45454
+      QEMU_PIDFILE: /tmp/qemu-ci.pid
       VNC_PORT: 1
       VNC_CONNECT_ADDR: 127.0.0.1
 
@@ -99,15 +101,25 @@ jobs:
           run-built: ${{ env.RUN_IMAGE_BUILT }}
           run-pushable: ${{ env.RUN_IMAGE_PUSHABLE }}
 
+      - name: Start VM
+        uses: ./.github/actions/start-vm
+        with:
+          container-name: ${{ env.QEMU_CONTAINER_NAME }}
+          qemu-monitor-addr: ${{ env.QEMU_MONITOR_ADDR }}
+          qemu-pidfile: ${{ env.QEMU_PIDFILE }}
+          vnc-port: ${{ env.VNC_PORT }}
+
       - name: Smoke test
         uses: ./.github/actions/smoke-test
         with:
+          container-name: ${{ env.QEMU_CONTAINER_NAME }}
           qemu-monitor-addr: ${{ env.QEMU_MONITOR_ADDR }}
           vnc-port: ${{ env.VNC_PORT }}
 
       - name: Integration test
         uses: ./.github/actions/integration-test
         with:
+          container-name: ${{ env.QEMU_CONTAINER_NAME }}
           qemu-monitor-addr: ${{ env.QEMU_MONITOR_ADDR }}
           vnc-port: ${{ env.VNC_PORT }}
           vnc-connect-addr: ${{ env.VNC_CONNECT_ADDR }}
@@ -120,3 +132,11 @@ jobs:
           smoke-image-name: ${{ env.PR_SMOKE_IMAGE_NAME }}
           integration-image-name: ${{ env.PR_INTEGRATION_IMAGE_NAME }}
           integration-terminal-image-name: ${{ env.PR_INTEGRATION_TERMINAL_IMAGE_NAME }}
+
+      - name: Stop VM
+        if: always()
+        uses: ./.github/actions/stop-vm
+        with:
+          container-name: ${{ env.QEMU_CONTAINER_NAME }}
+          qemu-monitor-addr: ${{ env.QEMU_MONITOR_ADDR }}
+          qemu-pidfile: ${{ env.QEMU_PIDFILE }}
