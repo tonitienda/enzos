@@ -17,6 +17,10 @@ var (
 	addressLineStart = regexp.MustCompile(`^[0-9a-fA-F]+:`)
 )
 
+func printableASCII(value int64) bool {
+	return value >= 0x20 && value <= 0x7e
+}
+
 func extractDumpRegion(contents string) string {
 	lines := strings.Split(contents, "\n")
 
@@ -53,21 +57,33 @@ func ExtractCharacters(contents string) (string, error) {
 	matches := hexBytePattern.FindAllStringSubmatch(region, -1)
 
 	var builder strings.Builder
-	for index, match := range matches {
-		if index%2 != 0 {
-			continue // Skip attribute bytes.
+	for index := 0; index < len(matches); index += 2 {
+		pair := matches[index : index+1]
+		if index+1 < len(matches) {
+			pair = matches[index : index+2]
 		}
 
-		byteHex := match[1]
-		if byteHex == "00" {
-			continue
+		var runeValue *int64
+		for _, match := range pair {
+			byteHex := match[1]
+			if byteHex == "00" {
+				continue
+			}
+
+			value, err := strconv.ParseInt(byteHex, 16, 64)
+			if err != nil {
+				return "", fmt.Errorf("invalid hex byte %q: %w", byteHex, err)
+			}
+
+			if printableASCII(value) {
+				runeValue = &value
+				break
+			}
 		}
 
-		value, err := strconv.ParseInt(byteHex, 16, 64)
-		if err != nil {
-			return "", fmt.Errorf("invalid hex byte %q: %w", byteHex, err)
+		if runeValue != nil {
+			builder.WriteRune(rune(*runeValue))
 		}
-		builder.WriteRune(rune(value))
 	}
 
 	characters := builder.String()
