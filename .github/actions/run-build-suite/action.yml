@@ -121,14 +121,39 @@ runs:
           enzos-build \
           bash -c "./scripts/build-iso.sh"
 
-    - name: QEMU smoke test inside container
+    - name: Run smoke and integration tests inside container
       shell: bash
       run: |
         docker run --rm \
           -v "$PWD":/src \
           -w /src \
           enzos-run \
-          bash -c "VNC_SCREENSHOT=qemu-screen.ppm VNC_WAIT_SECONDS=5 ./scripts/qemu-smoketest.sh enzos.iso"
+          bash -c '
+            set -euo pipefail
+
+            export QEMU_MONITOR_ADDR="${QEMU_MONITOR_ADDR:-127.0.0.1:45454}"
+            export VNC_PORT="${VNC_PORT:-1}"
+
+            QEMU_KEEP_ALIVE=true \
+            QEMU_MONITOR_ADDR="$QEMU_MONITOR_ADDR" \
+            VNC_SCREENSHOT=qemu-screen-smoke.ppm \
+            VNC_CLIENT_LOG=qemu-vnc-client-smoke.log \
+            QEMU_VNC_LOG=qemu-vnc-server.log \
+            VNC_CAPTURE_MODE="${VNC_CAPTURE_MODE:-internal}" \
+            VNC_WAIT_SECONDS="${VNC_WAIT_SECONDS:-5}" \
+            ./scripts/qemu-smoketest.sh enzos.iso
+
+            QEMU_MONITOR_ADDR="$QEMU_MONITOR_ADDR" \
+            go test ./scripts -count=1 -v
+
+            VNC_SCREENSHOT=qemu-screen-integration.ppm \
+            VNC_CLIENT_LOG=qemu-vnc-client-integration.log \
+            VNC_PORT="$VNC_PORT" \
+            VNC_CONNECT_ADDR=127.0.0.1 \
+            ./scripts/capture-vnc.sh
+
+            go run ./scripts/qemu_monitor_client.go -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd quit || true
+          '
 
     - name: Validate VGA dump artifacts
       if: always()
@@ -152,7 +177,7 @@ runs:
           exit 1
         fi
 
-    - name: Convert VNC screenshot to PNG
+    - name: Convert VNC screenshots to PNG
       if: always()
       shell: bash
       run: |
@@ -160,4 +185,4 @@ runs:
           -v "$PWD":/src \
           -w /src \
           enzos-run \
-          bash -c "if [[ -f qemu-screen.ppm ]]; then convert qemu-screen.ppm qemu-screen.png; fi"
+          bash -c "if [[ -f qemu-screen-smoke.ppm ]]; then convert qemu-screen-smoke.ppm qemu-screen-smoke.png; fi; if [[ -f qemu-screen-integration.ppm ]]; then convert qemu-screen-integration.ppm qemu-screen-integration.png; fi"

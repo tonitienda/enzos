@@ -2,7 +2,12 @@
 
 EnzOS - tiny OS for learning purposes
 
-![EnzOS splash screen](docs/splash-screen.png)
+## QEMU Screenshots
+
+- ![EnzOS Smoke Test Screen](docs/splash-screen.png)
+- Integration test snapshots are uploaded by CI as artifacts and PR images so we avoid committing binary assets to the repository.
+
+The smoke screenshot comes from the same QEMU instance that continues into the integration tests. Pairing the inline smoke image with the CI-provided integration capture helps learners connect the automated checks to the on-screen behavior without bloating the repo with additional binaries.
 
 ## EnzOS — Milestone 0
 
@@ -100,9 +105,9 @@ qemu-system-x86_64 -cdrom enzos.iso -serial stdio -no-reboot -no-shutdown
 ## VNC Screenshot Capture
 
 - Set `VNC_SCREENSHOT` when running `scripts/qemu-smoketest.sh` to expose a temporary VNC server while the guest boots and to record what the guest draws. QEMU binds to `${VNC_BIND_ADDR}:${VNC_PORT}` (default `0.0.0.0:1`, which maps to TCP 5901) so the CI runner can connect directly.
-- Prefer capturing the screenshot from the host (outside Docker) so CI can upload it to the PR: `VNC_SCREENSHOT=qemu-screen.ppm VNC_CAPTURE_MODE=external VNC_EXTERNAL_CAPTURE_WAIT=20 just smoketest`. The recipe defaults to `VNC_CAPTURE_MODE=external` and forwards the VNC port to make this easy.
-- If you want the container to take the screenshot itself, set `VNC_CAPTURE_MODE=internal`; `vncsnapshot` is installed in the dev image but must be installed locally for bare-metal runs.
-- The script keeps `qemu-vnc-server.log` and `qemu-vnc-client.log` so you can read the handshake attempts and error traces even when the snapshot fails. These logs make it easier to debug why a remote VNC client could not connect.
+- The CI workflow now keeps the QEMU process alive after the smoke test to run integration tests against the same guest. By default it writes `qemu-screen-smoke.ppm` during the smoke test and `qemu-screen-integration.ppm` after the Go integration tests drive the shell, giving us two synchronized snapshots of the same VM.
+- Prefer capturing the screenshot from the host (outside Docker) if you want to override the defaults: `VNC_SCREENSHOT=qemu-screen-custom.ppm VNC_CAPTURE_MODE=external VNC_EXTERNAL_CAPTURE_WAIT=20 just smoketest`. The script defaults to `VNC_CAPTURE_MODE=internal` so CI can run without extra tools.
+- The smoke and integration captures keep `qemu-vnc-server.log`, `qemu-vnc-client-smoke.log`, and `qemu-vnc-client-integration.log` so you can read the handshake attempts and error traces even when a snapshot fails. These logs make it easier to debug why a remote VNC client could not connect.
 
 ---
 
