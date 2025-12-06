@@ -2,13 +2,13 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"net"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -19,13 +19,19 @@ func readUntilPrompt(r *bufio.Reader, conn net.Conn, w io.Writer, deadline time.
 		}
 	}
 
+	const prompt = "(qemu)"
+	buffer := make([]byte, 0, 1024)
+	tmp := make([]byte, 1)
+
 	for {
-		line, err := r.ReadString('\n')
-		if len(line) > 0 {
-			if _, writeErr := io.WriteString(w, line); writeErr != nil {
+		n, err := r.Read(tmp)
+		if n > 0 {
+			buffer = append(buffer, tmp[:n]...)
+			if _, writeErr := w.Write(tmp[:n]); writeErr != nil {
 				return false, writeErr
 			}
-			if strings.Contains(line, "(qemu)") {
+
+			if bytes.Contains(buffer, []byte(prompt)) {
 				return true, nil
 			}
 		}
