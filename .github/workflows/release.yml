@@ -5,48 +5,386 @@ on:
     tags:
       - 'v*'   # v0.1.0, v1.0.0, etc.
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
-  release:
+  build-build-env:
+    name: Build build-env image (only when Dockerfile.build-env changes)
     runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      tag: ${{ steps.meta.outputs.tag }}
+      built: ${{ steps.filter.outputs.dockerfile }}
+      pushable: ${{ steps.pushable.outputs.pushable }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install QEMU
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dockerfile:
+              - 'Dockerfile.build-env'
+
+      - name: Image metadata
+        id: meta
         run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-system-x86
+          OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "image=ghcr.io/${OWNER}/enzos-build" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Push permission check
+        id: pushable
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            echo "pushable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pushable=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to GHCR
+        if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build build-env image
+        if: steps.filter.outputs.dockerfile == 'true'
+        run: |
+          IMAGE="${{ steps.meta.outputs.image }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+          docker build -f Dockerfile.build-env -t "$IMAGE:$TAG" -t "$IMAGE:latest" --build-arg MAKE_JOBS=1 .
+
+      - name: Push build-env image
+        if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+        run: |
+          IMAGE="${{ steps.meta.outputs.image }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+          docker push "$IMAGE:$TAG"
+          docker push "$IMAGE:latest"
+
+  build-run-env:
+    name: Build run-env image (only when Dockerfile.run-env changes)
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      tag: ${{ steps.meta.outputs.tag }}
+      built: ${{ steps.filter.outputs.dockerfile }}
+      pushable: ${{ steps.pushable.outputs.pushable }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dockerfile:
+              - 'Dockerfile.run-env'
+
+      - name: Image metadata
+        id: meta
+        run: |
+          OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+          echo "image=ghcr.io/${OWNER}/enzos-run" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Push permission check
+        id: pushable
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            echo "pushable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pushable=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Login to GHCR
+        if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build run-env image
+        if: steps.filter.outputs.dockerfile == 'true'
+        run: |
+          IMAGE="${{ steps.meta.outputs.image }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+          docker build -f Dockerfile.run-env -t "$IMAGE:$TAG" -t "$IMAGE:latest" .
+
+      - name: Push run-env image
+        if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+        run: |
+          IMAGE="${{ steps.meta.outputs.image }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+          docker push "$IMAGE:$TAG"
+          docker push "$IMAGE:latest"
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    needs:
+      - build-build-env
+      - build-run-env
+    permissions:
+      contents: write
+      packages: read
+    env:
+      BUILD_IMAGE: ${{ needs.build-build-env.outputs.image }}
+      BUILD_IMAGE_TAG: ${{ needs.build-build-env.outputs.tag }}
+      BUILD_IMAGE_BUILT: ${{ needs.build-build-env.outputs.built }}
+      BUILD_IMAGE_PUSHABLE: ${{ needs.build-build-env.outputs.pushable }}
+      RUN_IMAGE: ${{ needs.build-run-env.outputs.image }}
+      RUN_IMAGE_TAG: ${{ needs.build-run-env.outputs.tag }}
+      RUN_IMAGE_BUILT: ${{ needs.build-run-env.outputs.built }}
+      RUN_IMAGE_PUSHABLE: ${{ needs.build-run-env.outputs.pushable }}
+      PR_IMAGE_NAME: qemu-screen-${{ github.run_id }}-${{ github.run_attempt }}.png
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull build and run images (with local fallback)
+        run: |
+          set -euo pipefail
+
+          pull_image() {
+            local image="$1" tag="$2" built="$3" pushable="$4" alias="$5"
+
+            if [ -z "$image" ]; then
+              echo "Image name missing for $alias image" >&2
+              return 1
+            fi
+
+            local ref
+            if [ "$built" = "true" ] && [ "$pushable" = "true" ]; then
+              ref="${image}:${tag}"
+            else
+              ref="${image}:latest"
+            fi
+
+            echo "Pulling $ref for $alias ..."
+            if docker pull "$ref"; then
+              docker tag "$ref" "$alias"
+              return 0
+            fi
+
+            echo "Pull failed for $alias; will try to build locally." >&2
+            return 1
+          }
+
+          build_image() {
+            local alias="$1" dockerfile="$2" image="$3" tag="$4"
+            echo "Building $alias from $dockerfile ..."
+            docker build -f "$dockerfile" -t "$image:$tag" -t "$image:latest" .
+            docker tag "$image:$tag" "$alias"
+          }
+
+          declare -A PIDS
+          pull_image "${BUILD_IMAGE}" "${BUILD_IMAGE_TAG}" "${BUILD_IMAGE_BUILT}" "${BUILD_IMAGE_PUSHABLE}" enzos-build &
+          PIDS[build]=$!
+          pull_image "${RUN_IMAGE}" "${RUN_IMAGE_TAG}" "${RUN_IMAGE_BUILT}" "${RUN_IMAGE_PUSHABLE}" enzos-run &
+          PIDS[run]=$!
+
+          declare -A FAILED
+          for key in "${!PIDS[@]}"; do
+            if ! wait "${PIDS[$key]}"; then
+              FAILED[$key]=1
+            fi
+          done
+
+          if ! docker image inspect enzos-build >/dev/null 2>&1; then
+            build_image enzos-build Dockerfile.build-env "${BUILD_IMAGE}" "${BUILD_IMAGE_TAG}"
+          fi
+
+          if ! docker image inspect enzos-run >/dev/null 2>&1; then
+            build_image enzos-run Dockerfile.run-env "${RUN_IMAGE}" "${RUN_IMAGE_TAG}"
+          fi
+
+      - name: Verify build environment
+        run: docker run --rm enzos-build i686-elf-gcc --version
+
+      - name: Verify run environment
+        run: docker run --rm enzos-run qemu-system-x86_64 --version
 
       - name: Run unit tests
-        run: ./scripts/run-tests.sh
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -w /src \
+            enzos-build \
+            bash -c "./scripts/run-tests.sh"
 
       - name: Build kernel ELF
-        run: ./scripts/build-elf.sh
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -w /src \
+            enzos-build \
+            bash -c "./scripts/build-elf.sh"
 
       - name: Build ISO
-        run: ./scripts/build-iso.sh
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -w /src \
+            enzos-build \
+            bash -c "./scripts/build-iso.sh"
 
-      - name: QEMU smoke test
-        run: ./scripts/qemu-smoketest.sh enzos.iso
+      - name: QEMU smoke test inside container
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -w /src \
+            enzos-run \
+            bash -c "VNC_SCREENSHOT=qemu-screen.ppm VNC_WAIT_SECONDS=5 ./scripts/qemu-smoketest.sh enzos.iso"
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Validate VGA dump artifacts
+        if: always()
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f qemu-vga-dump.raw.txt ]]; then
+            echo "Missing qemu-vga-dump.raw.txt; smoke test did not produce a VGA dump." >&2
+            exit 1
+          fi
+
+          VGA_TEXT=$(docker run --rm \
+            -v "$PWD":/src \
+            -w /src \
+            enzos-run \
+            bash -c "go run scripts/qemu_vga_extract.go qemu-vga-dump.raw.txt")
+
+          if [[ "$VGA_TEXT" != *"EnzOS booted successfully."* ]]; then
+            echo "Boot message not found in qemu-vga-dump.raw.txt: EnzOS booted successfully." >&2
+            exit 1
+          fi
+
+      - name: Convert VNC screenshot to PNG
+        if: always()
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -w /src \
+            enzos-run \
+            bash -c "if [[ -f qemu-screen.ppm ]]; then convert qemu-screen.ppm qemu-screen.png; fi"
+
+      - name: Generate changelog
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          CURRENT_TAG="${GITHUB_REF_NAME}"
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || true)
+
+          if [[ -z "$PREVIOUS_TAG" ]]; then
+            RANGE="$(git rev-list --max-parents=0 HEAD | tail -n 1)..HEAD"
+          else
+            RANGE="${PREVIOUS_TAG}..${CURRENT_TAG}"
+          fi
+
+          {
+            echo "# Changelog for ${CURRENT_TAG}"
+            echo ""
+            echo "## Commits"
+            git log --no-merges --pretty=format:"- %s (%h)" "$RANGE"
+          } > changelog.md
+
+      - name: Upload VGA dump artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-vga-dump
+          path: |
+            qemu-vga-dump.raw.txt
+            qemu-vga-dump.txt
+          if-no-files-found: warn
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: enzos-iso
+          path: enzos.iso
+          if-no-files-found: ignore
+
+      - name: Upload VNC artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-vnc-artifacts
+          path: |
+            qemu-screen.ppm
+            qemu-screen.png
+            qemu-vnc-client.log
+            qemu-vnc-server.log
+            qemu-vga-dump.txt
+          if-no-files-found: ignore
+
+      - name: Upload changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: enzos-changelog
+          path: changelog.md
+
+  publish-release:
+    runs-on: ubuntu-latest
+    needs:
+      - build-and-test
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download ISO
+        uses: actions/download-artifact@v4
+        with:
+          name: enzos-iso
+          path: release-artifacts
+
+      - name: Download VNC artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: qemu-vnc-artifacts
+          path: release-artifacts
+
+      - name: Download changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: enzos-changelog
+          path: release-artifacts
+
+      - name: Validate release assets
+        run: |
+          set -euo pipefail
+          for file in enzos.iso qemu-screen.png changelog.md; do
+            if [[ ! -f "release-artifacts/$file" ]]; then
+              echo "Missing required release artifact: $file" >&2
+              ls -la release-artifacts
+              exit 1
+            fi
+          done
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: EnzOS ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-
-      - name: Upload ISO to Release
-        uses: actions/upload-release-asset@v1
+          name: EnzOS ${{ github.ref_name }}
+          body_path: release-artifacts/changelog.md
+          files: |
+            release-artifacts/enzos.iso
+            release-artifacts/qemu-screen.png
+            release-artifacts/changelog.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./enzos.iso
-          asset_name: enzos-${{ github.ref_name }}.iso
-          asset_content_type: application/octet-stream
