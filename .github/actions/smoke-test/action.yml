@@ -25,6 +25,7 @@ runs:
         set -euo pipefail
 
         docker exec \
+          -w /src \
           -e QEMU_MONITOR_ADDR="${{ inputs.qemu-monitor-addr }}" \
           -e VNC_PORT="${{ inputs.vnc-port }}" \
           -e VNC_CONNECT_ADDR="${{ inputs.vnc-connect-addr }}" \
