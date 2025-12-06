@@ -11,6 +11,10 @@ inputs:
     description: Extra arguments to pass to docker build.
     required: false
     default: ''
+  token:
+    description: Token with permissions to push to GHCR when enabled.
+    required: false
+    default: ''
 outputs:
   image:
     description: Fully qualified image name.
@@ -49,7 +53,7 @@ runs:
       id: pushable
       shell: bash
       run: |
-        if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+        if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ -n "${{ inputs.token }}" ]; then
           echo "pushable=true" >> "$GITHUB_OUTPUT"
         else
           echo "pushable=false" >> "$GITHUB_OUTPUT"
@@ -61,7 +65,7 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ inputs.token }}
 
     - name: Build image
       if: steps.filter.outputs.dockerfile == 'true'

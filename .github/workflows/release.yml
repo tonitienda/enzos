@@ -30,6 +30,7 @@ jobs:
           dockerfile: Dockerfile.build-env
           image-name: enzos-build
           build-args: --build-arg MAKE_JOBS=1
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   build-run-env:
     name: Build run-env image (only when Dockerfile.run-env changes)
@@ -50,6 +51,7 @@ jobs:
         with:
           dockerfile: Dockerfile.run-env
           image-name: enzos-run
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   build-and-test:
     runs-on: ubuntu-latest
