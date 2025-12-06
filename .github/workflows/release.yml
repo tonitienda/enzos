@@ -70,7 +70,8 @@ jobs:
       RUN_IMAGE_TAG: ${{ needs.build-run-env.outputs.tag }}
       RUN_IMAGE_BUILT: ${{ needs.build-run-env.outputs.built }}
       RUN_IMAGE_PUSHABLE: ${{ needs.build-run-env.outputs.pushable }}
-      PR_IMAGE_NAME: qemu-screen-${{ github.run_id }}-${{ github.run_attempt }}.png
+      PR_SMOKE_IMAGE_NAME: qemu-screen-smoke-${{ github.run_id }}-${{ github.run_attempt }}.png
+      PR_INTEGRATION_IMAGE_NAME: qemu-screen-integration-${{ github.run_id }}-${{ github.run_attempt }}.png
 
     steps:
       - name: Checkout
@@ -137,9 +138,12 @@ jobs:
         with:
           name: qemu-vnc-artifacts
           path: |
-            qemu-screen.ppm
-            qemu-screen.png
-            qemu-vnc-client.log
+            qemu-screen-smoke.ppm
+            qemu-screen-smoke.png
+            qemu-screen-integration.ppm
+            qemu-screen-integration.png
+            qemu-vnc-client-smoke.log
+            qemu-vnc-client-integration.log
             qemu-vnc-server.log
             qemu-vga-dump.txt
           if-no-files-found: ignore
@@ -176,16 +180,16 @@ jobs:
           name: enzos-changelog
           path: release-artifacts
 
-      - name: Validate release assets
-        run: |
-          set -euo pipefail
-          for file in enzos.iso qemu-screen.png changelog.md; do
-            if [[ ! -f "release-artifacts/$file" ]]; then
-              echo "Missing required release artifact: $file" >&2
-              ls -la release-artifacts
-              exit 1
-            fi
-          done
+        - name: Validate release assets
+          run: |
+            set -euo pipefail
+            for file in enzos.iso qemu-screen-smoke.png qemu-screen-integration.png changelog.md; do
+              if [[ ! -f "release-artifacts/$file" ]]; then
+                echo "Missing required release artifact: $file" >&2
+                ls -la release-artifacts
+                exit 1
+              fi
+            done
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v1
@@ -195,7 +199,8 @@ jobs:
           body_path: release-artifacts/changelog.md
           files: |
             release-artifacts/enzos.iso
-            release-artifacts/qemu-screen.png
+            release-artifacts/qemu-screen-smoke.png
+            release-artifacts/qemu-screen-integration.png
             release-artifacts/changelog.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

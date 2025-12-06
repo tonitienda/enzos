@@ -69,7 +69,8 @@ jobs:
       RUN_IMAGE_TAG: ${{ needs.build-run-env.outputs.tag }}
       RUN_IMAGE_BUILT: ${{ needs.build-run-env.outputs.built }}
       RUN_IMAGE_PUSHABLE: ${{ needs.build-run-env.outputs.pushable }}
-      PR_IMAGE_NAME: qemu-screen-${{ github.run_id }}-${{ github.run_attempt }}.png
+      PR_SMOKE_IMAGE_NAME: qemu-screen-smoke-${{ github.run_id }}-${{ github.run_attempt }}.png
+      PR_INTEGRATION_IMAGE_NAME: qemu-screen-integration-${{ github.run_id }}-${{ github.run_attempt }}.png
 
     steps:
       - name: Checkout
@@ -93,20 +94,14 @@ jobs:
           run-built: ${{ env.RUN_IMAGE_BUILT }}
           run-pushable: ${{ env.RUN_IMAGE_PUSHABLE }}
 
-      - name: Upload VNC screenshot to repository
-        id: upload_vnc_image
+      - name: Upload VNC screenshots to repository
+        id: upload_vnc_images
         if: always()
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-
-            const imagePath = fs.existsSync('qemu-screen.png') ? 'qemu-screen.png' : null;
-            if (!imagePath) {
-              core.info('No VNC screenshot available; skipping repository upload.');
-              return { image_url: '' };
-            }
 
             const pr = context.payload.pull_request;
             const owner = pr ? pr.head.repo.owner.login : context.repo.owner;
@@ -116,13 +111,10 @@ jobs:
 
             if (!branch) {
               core.setFailed('No branch ref available for repository upload.');
-              return { image_url: '' };
+              return { smoke_image_url: '', integration_image_url: '' };
             }
-            const uploadPath = `.github/pr-images/${process.env.PR_IMAGE_NAME}`;
-            const readmeImagePath = 'docs/splash-screen.png';
-            const content = fs.readFileSync(imagePath).toString('base64');
 
-            const upsertFile = async (path, message) => {
+            const upsertFile = async (path, message, content) => {
               let existingSha;
               try {
                 const existing = await github.rest.repos.getContent({ owner, repo, path, ref: branch });
@@ -146,15 +138,42 @@ jobs:
               });
             };
 
-            const prImageResponse = await upsertFile(uploadPath, `Add PR VNC screenshot for #${prNumber}`);
-            await upsertFile(readmeImagePath, `Update README splash screen for #${prNumber}`);
+            const screenshots = [
+              {
+                label: 'smoke',
+                source: 'qemu-screen-smoke.png',
+                upload: `.github/pr-images/${process.env.PR_SMOKE_IMAGE_NAME}`,
+                readmePath: 'docs/splash-screen.png',
+              },
+              {
+                label: 'integration',
+                source: 'qemu-screen-integration.png',
+                upload: `.github/pr-images/${process.env.PR_INTEGRATION_IMAGE_NAME}`,
+                readmePath: 'docs/integration-screen.png',
+              },
+            ];
 
-            const imageUrl = prImageResponse.data.content.download_url
-              || `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${uploadPath}`;
-            core.info(`Uploaded VNC screenshot to ${imageUrl}`);
-            core.info(`Updated README splash screen at ${readmeImagePath}`);
-            core.setOutput('image_url', imageUrl);
-            return imageUrl;
+            const results = {};
+            for (const shot of screenshots) {
+              if (!fs.existsSync(shot.source)) {
+                core.info(`No ${shot.label} screenshot found at ${shot.source}; skipping upload.`);
+                continue;
+              }
+
+              const content = fs.readFileSync(shot.source).toString('base64');
+              const uploadResponse = await upsertFile(shot.upload, `Add ${shot.label} VNC screenshot for #${prNumber}`, content);
+              await upsertFile(shot.readmePath, `Update README ${shot.label} screen for #${prNumber}`, content);
+
+              const imageUrl = uploadResponse.data.content.download_url
+                || `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${shot.upload}`;
+              core.info(`Uploaded ${shot.label} VNC screenshot to ${imageUrl}`);
+              core.info(`Updated README screenshot at ${shot.readmePath}`);
+              results[`${shot.label}_image_url`] = imageUrl;
+            }
+
+            core.setOutput('smoke_image_url', results.smoke_image_url || '');
+            core.setOutput('integration_image_url', results.integration_image_url || '');
+            return results;
 
       - name: Upload VGA dump artifact
         if: always()
@@ -179,9 +198,12 @@ jobs:
         with:
           name: qemu-vnc-artifacts
           path: |
-            qemu-screen.ppm
-            qemu-screen.png
-            qemu-vnc-client.log
+            qemu-screen-smoke.ppm
+            qemu-screen-smoke.png
+            qemu-screen-integration.ppm
+            qemu-screen-integration.png
+            qemu-vnc-client-smoke.log
+            qemu-vnc-client-integration.log
             qemu-vnc-server.log
             qemu-vga-dump.txt
           if-no-files-found: ignore
@@ -194,14 +216,24 @@ jobs:
 
           COMMENT_FILE=pr-vnc-comment.md
           HAS_CONTENT=false
-          echo "## QEMU Smoke Test Artifacts" > "$COMMENT_FILE"
+          echo "## QEMU Smoke And Integration Artifacts" > "$COMMENT_FILE"
 
-          IMAGE_URL="${{ steps.upload_vnc_image.outputs.image_url }}"
-          if [[ -n "$IMAGE_URL" ]]; then
+          SMOKE_IMAGE_URL="${{ steps.upload_vnc_images.outputs.smoke_image_url }}"
+          if [[ -n "$SMOKE_IMAGE_URL" ]]; then
             {
               echo ""
-              echo "### VNC Screenshot"
-              echo "![QEMU VNC Screenshot](${IMAGE_URL})"
+              echo "### Smoke Test VNC Screenshot"
+              echo "![QEMU Smoke Screenshot](${SMOKE_IMAGE_URL})"
+            } >> "$COMMENT_FILE"
+            HAS_CONTENT=true
+          fi
+
+          INTEGRATION_IMAGE_URL="${{ steps.upload_vnc_images.outputs.integration_image_url }}"
+          if [[ -n "$INTEGRATION_IMAGE_URL" ]]; then
+            {
+              echo ""
+              echo "### Integration Test VNC Screenshot"
+              echo "![QEMU Integration Screenshot](${INTEGRATION_IMAGE_URL})"
             } >> "$COMMENT_FILE"
             HAS_CONTENT=true
           fi
@@ -224,7 +256,8 @@ jobs:
             fi
           }
 
-          append_log_block "VNC Client Log" qemu-vnc-client.log
+          append_log_block "VNC Client Log (Smoke)" qemu-vnc-client-smoke.log
+          append_log_block "VNC Client Log (Integration)" qemu-vnc-client-integration.log
           append_log_block "VNC Server Log" qemu-vnc-server.log
           append_log_block "VGA Text Dump" qemu-vga-dump.txt
 
