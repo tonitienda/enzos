@@ -1,0 +1,82 @@
+name: Build Docker Image
+description: Build and optionally push a Docker image when its Dockerfile changes.
+inputs:
+  dockerfile:
+    description: Path to the Dockerfile to build.
+    required: true
+  image-name:
+    description: Image name suffix to append after ghcr.io/<owner>/.
+    required: true
+  build-args:
+    description: Extra arguments to pass to docker build.
+    required: false
+    default: ''
+outputs:
+  image:
+    description: Fully qualified image name.
+    value: ${{ steps.meta.outputs.image }}
+  tag:
+    description: Tag used for the image when building from this commit.
+    value: ${{ steps.meta.outputs.tag }}
+  built:
+    description: Whether the Dockerfile was modified in this run.
+    value: ${{ steps.filter.outputs.dockerfile }}
+  pushable:
+    description: Whether the current event permits pushing images.
+    value: ${{ steps.pushable.outputs.pushable }}
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - id: filter
+      uses: dorny/paths-filter@v3
+      with:
+        filters: |
+          dockerfile:
+            - '${{ inputs.dockerfile }}'
+
+    - name: Image metadata
+      id: meta
+      shell: bash
+      run: |
+        OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+        echo "image=ghcr.io/${OWNER}/${{ inputs.image-name }}" >> "$GITHUB_OUTPUT"
+        echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+    - name: Push permission check
+      id: pushable
+      shell: bash
+      run: |
+        if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+          echo "pushable=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "pushable=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Login to GHCR
+      if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build image
+      if: steps.filter.outputs.dockerfile == 'true'
+      shell: bash
+      run: |
+        IMAGE="${{ steps.meta.outputs.image }}"
+        TAG="${{ steps.meta.outputs.tag }}"
+        BUILD_ARGS="${{ inputs.build-args }}"
+        docker build -f "${{ inputs.dockerfile }}" -t "$IMAGE:$TAG" -t "$IMAGE:latest" $BUILD_ARGS .
+
+    - name: Push image
+      if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+      shell: bash
+      run: |
+        IMAGE="${{ steps.meta.outputs.image }}"
+        TAG="${{ steps.meta.outputs.tag }}"
+        docker push "$IMAGE:$TAG"
+        docker push "$IMAGE:latest"
