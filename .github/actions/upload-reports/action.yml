@@ -48,7 +48,7 @@ runs:
         github-token: ${{ inputs.github-token }}
         script: |
           const upload = require('./.github/scripts/upload-vnc-images.js');
-          module.exports = async ({ github, context, core }) => upload({ github, context, core });
+          await upload({ github, context, core });
 
     - name: Upload VGA dump artifact
       if: always()
@@ -103,4 +103,4 @@ runs:
         github-token: ${{ inputs.github-token }}
         script: |
           const commentWithFile = require('./.github/scripts/comment-with-file.js');
-          module.exports = async ({ github, context, core }) => commentWithFile({ github, context, core }, 'pr-vnc-comment.md');
+          await commentWithFile({ github, context, core }, 'pr-vnc-comment.md');
