@@ -38,4 +38,6 @@ void terminal_setcolor(uint8_t color);
 
 void terminal_writestring(const char* data);
 
+void terminal_putchar(char c);
+
 #endif /* ENZOS_DRIVERS_TERMINAL_H */

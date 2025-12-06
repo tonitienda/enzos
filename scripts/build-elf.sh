@@ -54,6 +54,16 @@ build_objects() {
     -c "$REPO_ROOT/src/kernel.c" \
     -o "$BUILD_DIR/kernel.o"
 
+  echo "[build-elf] Compiling shell..."
+  $CC \
+    -std=gnu99 \
+    -ffreestanding \
+    -O2 \
+    -Wall -Wextra \
+    "${EXTRA_CFLAGS[@]}" \
+    -c "$REPO_ROOT/src/shell/shell.c" \
+    -o "$BUILD_DIR/shell.o"
+
   echo "[build-elf] Compiling terminal driver..."
   $CC \
     -std=gnu99 \
@@ -63,6 +73,16 @@ build_objects() {
     "${EXTRA_CFLAGS[@]}" \
     -c "$REPO_ROOT/src/drivers/terminal.c" \
     -o "$BUILD_DIR/terminal.o"
+
+  echo "[build-elf] Compiling keyboard driver..."
+  $CC \
+    -std=gnu99 \
+    -ffreestanding \
+    -O2 \
+    -Wall -Wextra \
+    "${EXTRA_CFLAGS[@]}" \
+    -c "$REPO_ROOT/src/drivers/keyboard.c" \
+    -o "$BUILD_DIR/keyboard.o"
 }
 
 link_kernel() {
@@ -73,7 +93,7 @@ link_kernel() {
     -ffreestanding \
     -O2 \
     -nostdlib \
-    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" "$BUILD_DIR/terminal.o" \
+    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" "$BUILD_DIR/shell.o" "$BUILD_DIR/terminal.o" "$BUILD_DIR/keyboard.o" \
     "${LIBS[@]}"
 }
 

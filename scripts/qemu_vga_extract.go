@@ -27,16 +27,25 @@ var (
 func extractDumpRegion(contents string) string {
 	lines := strings.Split(contents, "\n")
 
-	start := -1
-	for idx, line := range lines {
-		if addressLineStart.MatchString(strings.TrimSpace(line)) {
-			start = idx
+	end := -1
+	for idx := len(lines) - 1; idx >= 0; idx-- {
+		if addressLineStart.MatchString(strings.TrimSpace(lines[idx])) {
+			end = idx
 			break
 		}
 	}
 
-	if start == -1 {
+	if end == -1 {
 		return ""
+	}
+
+	start := end
+	for start > 0 {
+		trimmed := strings.TrimSpace(lines[start-1])
+		if !addressLineStart.MatchString(trimmed) {
+			break
+		}
+		start--
 	}
 
 	return strings.Join(lines[start:], "\n")
