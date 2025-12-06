@@ -1,0 +1,56 @@
+name: Smoke Test
+description: Run QEMU smoke testing and validate VGA output.
+inputs:
+  qemu-monitor-addr:
+    description: Address used by the QEMU monitor.
+    required: false
+    default: 127.0.0.1:45454
+  vnc-port:
+    description: VNC port used for smoke testing.
+    required: false
+    default: "1"
+runs:
+  using: composite
+  steps:
+    - name: Run smoke test
+      shell: bash
+      run: |
+        docker run --rm \
+          -e QEMU_MONITOR_ADDR="${{ inputs.qemu-monitor-addr }}" \
+          -e VNC_PORT="${{ inputs.vnc-port }}" \
+          -v "$PWD":/src \
+          -w /src \
+          enzos-run \
+          bash -c '
+            set -euo pipefail
+
+            export VNC_SCREENSHOT=qemu-screen-smoke.ppm
+            export VNC_CLIENT_LOG=qemu-vnc-client-smoke.log
+            export QEMU_VNC_LOG=qemu-vnc-server.log
+            export VNC_CAPTURE_MODE="${VNC_CAPTURE_MODE:-internal}"
+            export VNC_WAIT_SECONDS="${VNC_WAIT_SECONDS:-5}"
+
+            QEMU_KEEP_ALIVE=true ./scripts/qemu-smoketest.sh enzos.iso
+          '
+
+    - name: Validate VGA dump artifacts
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if [[ ! -f qemu-vga-dump.raw.txt ]]; then
+          echo "Missing qemu-vga-dump.raw.txt; smoke test did not produce a VGA dump." >&2
+          exit 1
+        fi
+
+        VGA_TEXT=$(docker run --rm \
+          -v "$PWD":/src \
+          -w /src \
+          enzos-run \
+          bash -c "go run scripts/qemu_vga_extract.go qemu-vga-dump.raw.txt")
+
+        if [[ "$VGA_TEXT" != *"EnzOS booted successfully."* ]]; then
+          echo "Boot message not found in qemu-vga-dump.raw.txt: EnzOS booted successfully." >&2
+          exit 1
+        fi

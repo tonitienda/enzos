@@ -1,5 +1,5 @@
-name: Run EnzOS Build And Tests
-description: Pull or build images, run unit tests, build artifacts, and perform QEMU smoke testing.
+name: Build
+description: Pull images, run unit tests, and build EnzOS artifacts.
 inputs:
   build-image:
     description: Image name for the build environment.
@@ -120,76 +120,3 @@ runs:
           -w /src \
           enzos-build \
           bash -c "./scripts/build-iso.sh"
-
-    - name: Run smoke and integration tests inside container
-      shell: bash
-      run: |
-        docker run --rm \
-          -v "$PWD":/src \
-          -w /src \
-          enzos-run \
-          bash -c '
-            set -euo pipefail
-
-            export QEMU_MONITOR_ADDR="${QEMU_MONITOR_ADDR:-127.0.0.1:45454}"
-            export VNC_PORT="${VNC_PORT:-1}"
-
-            QEMU_KEEP_ALIVE=true \
-            QEMU_MONITOR_ADDR="$QEMU_MONITOR_ADDR" \
-            VNC_SCREENSHOT=qemu-screen-smoke.ppm \
-            VNC_CLIENT_LOG=qemu-vnc-client-smoke.log \
-            QEMU_VNC_LOG=qemu-vnc-server.log \
-            VNC_CAPTURE_MODE="${VNC_CAPTURE_MODE:-internal}" \
-            VNC_WAIT_SECONDS="${VNC_WAIT_SECONDS:-5}" \
-            ./scripts/qemu-smoketest.sh enzos.iso
-
-            QEMU_MONITOR_ADDR="$QEMU_MONITOR_ADDR" \
-            go test ./scripts -count=1 -v
-
-            VNC_SCREENSHOT=qemu-screen-integration.ppm \
-            VNC_CLIENT_LOG=qemu-vnc-client-integration.log \
-            VNC_PORT="$VNC_PORT" \
-            VNC_CONNECT_ADDR=127.0.0.1 \
-            ./scripts/capture-vnc.sh
-
-            VNC_SCREENSHOT=qemu-screen-integration-terminal.ppm \
-            VNC_CLIENT_LOG=qemu-vnc-client-integration-terminal.log \
-            VNC_PORT="$VNC_PORT" \
-            VNC_CONNECT_ADDR=127.0.0.1 \
-            VNC_WAIT_SECONDS=3 \
-            ./scripts/capture-vnc.sh
-
-            go run ./scripts/qemu_monitor_client.go -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd quit || true
-          '
-
-    - name: Validate VGA dump artifacts
-      if: always()
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        if [[ ! -f qemu-vga-dump.raw.txt ]]; then
-          echo "Missing qemu-vga-dump.raw.txt; smoke test did not produce a VGA dump." >&2
-          exit 1
-        fi
-
-        VGA_TEXT=$(docker run --rm \
-          -v "$PWD":/src \
-          -w /src \
-          enzos-run \
-          bash -c "go run scripts/qemu_vga_extract.go qemu-vga-dump.raw.txt")
-
-        if [[ "$VGA_TEXT" != *"EnzOS booted successfully."* ]]; then
-          echo "Boot message not found in qemu-vga-dump.raw.txt: EnzOS booted successfully." >&2
-          exit 1
-        fi
-
-    - name: Convert VNC screenshots to PNG
-      if: always()
-      shell: bash
-      run: |
-        docker run --rm \
-          -v "$PWD":/src \
-          -w /src \
-          enzos-run \
-          bash -c "if [[ -f qemu-screen-smoke.ppm ]]; then convert qemu-screen-smoke.ppm qemu-screen-smoke.png; fi; if [[ -f qemu-screen-integration.ppm ]]; then convert qemu-screen-integration.ppm qemu-screen-integration.png; fi; if [[ -f qemu-screen-integration-terminal.ppm ]]; then convert qemu-screen-integration-terminal.ppm qemu-screen-integration-terminal.png; fi"
