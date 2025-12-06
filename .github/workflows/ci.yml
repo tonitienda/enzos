@@ -18,6 +18,9 @@ jobs:
       pushable: ${{ steps.build-image.outputs.pushable }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Build build-env image
         id: build-image
         uses: ./.github/actions/docker-image
@@ -36,6 +39,9 @@ jobs:
       pushable: ${{ steps.build-image.outputs.pushable }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Build run-env image
         id: build-image
         uses: ./.github/actions/docker-image
