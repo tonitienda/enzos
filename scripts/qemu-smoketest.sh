@@ -53,7 +53,7 @@ rm -f "$VGA_RAW_OUT" "$VGA_TEXT_OUT"
 wait_for_monitor() {
   local attempts=20
   for ((i = 1; i <= attempts; i++)); do
-    if go run "$SCRIPT_DIR/qemu_monitor_client.go" -mode wait -addr "$QEMU_MONITOR_ADDR" -timeout 2s; then
+    if go run "$SCRIPT_DIR/cmd/qemu_monitor_client" -mode wait -addr "$QEMU_MONITOR_ADDR" -timeout 2s; then
       return 0
     fi
 
@@ -67,7 +67,7 @@ wait_for_monitor() {
 
 run_monitor_command() {
   local command="$1"
-  go run "$SCRIPT_DIR/qemu_monitor_client.go" -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd "$command"
+  go run "$SCRIPT_DIR/cmd/qemu_monitor_client" -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd "$command"
 }
 
 start_qemu() {
@@ -99,7 +99,7 @@ capture_vga_dump() {
   sleep "$VGA_BOOT_WAIT"
   run_monitor_command "xp /4000bx 0xb8000" >"$VGA_DUMP_TMP"
 
-  VGA_TEXT=$(go run "$SCRIPT_DIR/qemu_vga_extract.go" "$VGA_DUMP_TMP")
+  VGA_TEXT=$(go run "$SCRIPT_DIR/cmd/qemu_vga_extract" "$VGA_DUMP_TMP")
   cp "$VGA_DUMP_TMP" "$VGA_RAW_OUT"
   printf "%s\n" "$VGA_TEXT" >"$VGA_TEXT_OUT"
   chmod 644 "$VGA_RAW_OUT" "$VGA_TEXT_OUT"

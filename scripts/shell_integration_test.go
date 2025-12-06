@@ -1,4 +1,4 @@
-package main
+package scripts_test
 
 import (
 	"bufio"
@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"enzos/scripts/vga"
 )
 
 type monitorClient struct {
@@ -84,7 +86,6 @@ func monitorAddr(t *testing.T) string {
 
 func runShellScenario(t *testing.T, keys []string, bootDelay time.Duration) string {
 	t.Helper()
-
 	client := newMonitorClient(t)
 	defer client.Close()
 
@@ -98,7 +99,7 @@ func runShellScenario(t *testing.T, keys []string, bootDelay time.Duration) stri
 	}
 
 	output := client.run(t, "xp /4000bx 0xb8000")
-	text, err := extractCharacters(output)
+	text, err := vga.ExtractCharacters(output)
 	if err != nil {
 		t.Fatalf("failed to parse VGA buffer: %v\nOutput:%s", err, output)
 	}
