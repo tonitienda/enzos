@@ -71,6 +71,7 @@ jobs:
       RUN_IMAGE_PUSHABLE: ${{ needs.build-run-env.outputs.pushable }}
       PR_SMOKE_IMAGE_NAME: qemu-screen-smoke-${{ github.run_id }}-${{ github.run_attempt }}.png
       PR_INTEGRATION_IMAGE_NAME: qemu-screen-integration-${{ github.run_id }}-${{ github.run_attempt }}.png
+      PR_INTEGRATION_TERMINAL_IMAGE_NAME: qemu-screen-integration-terminal-${{ github.run_id }}-${{ github.run_attempt }}.png
 
     steps:
       - name: Checkout
@@ -102,6 +103,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
+            const { execSync } = require('child_process');
 
             const pr = context.payload.pull_request;
             const owner = pr ? pr.head.repo.owner.login : context.repo.owner;
@@ -138,6 +140,26 @@ jobs:
               });
             };
 
+            const ensurePngFromPpm = (pngPath) => {
+              const ppmPath = pngPath.replace(/\.png$/, '.ppm');
+
+              if (fs.existsSync(pngPath)) {
+                return;
+              }
+
+              if (!fs.existsSync(ppmPath)) {
+                core.info(`PNG not found at ${pngPath} and no PPM fallback at ${ppmPath}.`);
+                return;
+              }
+
+              try {
+                execSync(`convert ${ppmPath} ${pngPath}`, { stdio: 'inherit' });
+                core.info(`Converted ${ppmPath} to ${pngPath} for repository upload.`);
+              } catch (error) {
+                core.warning(`Failed to convert ${ppmPath} to PNG: ${error.message}`);
+              }
+            };
+
             const screenshots = [
               {
                 label: 'smoke',
@@ -151,10 +173,18 @@ jobs:
                 upload: `.github/pr-images/${process.env.PR_INTEGRATION_IMAGE_NAME}`,
                 readmePath: 'docs/integration-screen.png',
               },
+              {
+                label: 'integration_terminal',
+                source: 'qemu-screen-integration-terminal.png',
+                upload: `.github/pr-images/${process.env.PR_INTEGRATION_TERMINAL_IMAGE_NAME}`,
+                readmePath: 'docs/integration-terminal-screen.png',
+              },
             ];
 
             const results = {};
             for (const shot of screenshots) {
+              ensurePngFromPpm(shot.source);
+
               if (!fs.existsSync(shot.source)) {
                 core.info(`No ${shot.label} screenshot found at ${shot.source}; skipping upload.`);
                 continue;
@@ -173,6 +203,7 @@ jobs:
 
             core.setOutput('smoke_image_url', results.smoke_image_url || '');
             core.setOutput('integration_image_url', results.integration_image_url || '');
+            core.setOutput('integration_terminal_image_url', results.integration_terminal_image_url || '');
             return results;
 
       - name: Upload VGA dump artifact
@@ -202,8 +233,11 @@ jobs:
             qemu-screen-smoke.png
             qemu-screen-integration.ppm
             qemu-screen-integration.png
+            qemu-screen-integration-terminal.ppm
+            qemu-screen-integration-terminal.png
             qemu-vnc-client-smoke.log
             qemu-vnc-client-integration.log
+            qemu-vnc-client-integration-terminal.log
             qemu-vnc-server.log
             qemu-vga-dump.txt
           if-no-files-found: ignore
@@ -238,6 +272,16 @@ jobs:
             HAS_CONTENT=true
           fi
 
+          INTEGRATION_TERMINAL_IMAGE_URL="${{ steps.upload_vnc_images.outputs.integration_terminal_image_url }}"
+          if [[ -n "$INTEGRATION_TERMINAL_IMAGE_URL" ]]; then
+            {
+              echo ""
+              echo "### Post-Integration Terminal Screenshot"
+              echo "![QEMU Integration Terminal Screenshot](${INTEGRATION_TERMINAL_IMAGE_URL})"
+            } >> "$COMMENT_FILE"
+            HAS_CONTENT=true
+          fi
+
           append_log_block() {
             local title="$1"; shift
             local file="$1"
@@ -258,6 +302,7 @@ jobs:
 
           append_log_block "VNC Client Log (Smoke)" qemu-vnc-client-smoke.log
           append_log_block "VNC Client Log (Integration)" qemu-vnc-client-integration.log
+          append_log_block "VNC Client Log (Integration Terminal)" qemu-vnc-client-integration-terminal.log
           append_log_block "VNC Server Log" qemu-vnc-server.log
           append_log_block "VGA Text Dump" qemu-vga-dump.txt
 

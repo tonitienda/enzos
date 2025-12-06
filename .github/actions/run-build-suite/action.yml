@@ -152,6 +152,13 @@ runs:
             VNC_CONNECT_ADDR=127.0.0.1 \
             ./scripts/capture-vnc.sh
 
+            VNC_SCREENSHOT=qemu-screen-integration-terminal.ppm \
+            VNC_CLIENT_LOG=qemu-vnc-client-integration-terminal.log \
+            VNC_PORT="$VNC_PORT" \
+            VNC_CONNECT_ADDR=127.0.0.1 \
+            VNC_WAIT_SECONDS=3 \
+            ./scripts/capture-vnc.sh
+
             go run ./scripts/qemu_monitor_client.go -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd quit || true
           '
 
@@ -185,4 +192,4 @@ runs:
           -v "$PWD":/src \
           -w /src \
           enzos-run \
-          bash -c "if [[ -f qemu-screen-smoke.ppm ]]; then convert qemu-screen-smoke.ppm qemu-screen-smoke.png; fi; if [[ -f qemu-screen-integration.ppm ]]; then convert qemu-screen-integration.ppm qemu-screen-integration.png; fi"
+          bash -c "if [[ -f qemu-screen-smoke.ppm ]]; then convert qemu-screen-smoke.ppm qemu-screen-smoke.png; fi; if [[ -f qemu-screen-integration.ppm ]]; then convert qemu-screen-integration.ppm qemu-screen-integration.png; fi; if [[ -f qemu-screen-integration-terminal.ppm ]]; then convert qemu-screen-integration-terminal.ppm qemu-screen-integration-terminal.png; fi"
