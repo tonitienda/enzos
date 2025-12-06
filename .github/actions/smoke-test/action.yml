@@ -48,7 +48,7 @@ runs:
           -v "$PWD":/src \
           -w /src \
           enzos-run \
-          bash -c "go run scripts/qemu_vga_extract.go qemu-vga-dump.raw.txt")
+          bash -c "go run ./scripts/cmd/qemu_vga_extract qemu-vga-dump.raw.txt")
 
         if [[ "$VGA_TEXT" != *"EnzOS booted successfully."* ]]; then
           echo "Boot message not found in qemu-vga-dump.raw.txt: EnzOS booted successfully." >&2
