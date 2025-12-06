@@ -53,24 +53,7 @@ rm -f "$VGA_RAW_OUT" "$VGA_TEXT_OUT"
 wait_for_monitor() {
   local attempts=20
   for ((i = 1; i <= attempts; i++)); do
-    if python - "$QEMU_MONITOR_ADDR" <<'PY'
-import socket
-import sys
-
-addr = sys.argv[1]
-host, port = addr.rsplit(":", 1)
-
-try:
-    with socket.create_connection((host, int(port)), timeout=2) as sock:
-        file = sock.makefile("rb", buffering=0)
-        for line in file:
-            if b"(qemu)" in line:
-                sys.exit(0)
-        sys.exit(1)
-except OSError:
-    sys.exit(1)
-PY
-    then
+    if go run "$SCRIPT_DIR/qemu_monitor_client.go" -mode wait -addr "$QEMU_MONITOR_ADDR" -timeout 2s; then
       return 0
     fi
 
@@ -84,32 +67,7 @@ PY
 
 run_monitor_command() {
   local command="$1"
-  python - "$QEMU_MONITOR_ADDR" "$command" <<'PY'
-import socket
-import sys
-
-addr, cmd = sys.argv[1:3]
-host, port = addr.rsplit(":", 1)
-
-
-def read_until_prompt(file):
-    output = []
-    for line in file:
-        decoded = line.decode("utf-8", "replace")
-        output.append(decoded)
-        if "(qemu)" in decoded:
-            break
-    return "".join(output)
-
-
-with socket.create_connection((host, int(port)), timeout=5) as sock:
-    file = sock.makefile("rwb", buffering=0)
-    output = read_until_prompt(file)
-    file.write(cmd.encode("utf-8") + b"\n")
-    output += read_until_prompt(file)
-
-print(output, end="")
-PY
+  go run "$SCRIPT_DIR/qemu_monitor_client.go" -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd "$command"
 }
 
 start_qemu() {
