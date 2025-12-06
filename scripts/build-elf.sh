@@ -4,6 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$REPO_ROOT/build"
 EXTRA_CFLAGS=()
+COMMON_CFLAGS=()
 LIBS=()
 
 require_tools() {
@@ -46,23 +47,27 @@ build_objects() {
 
   echo "[build-elf] Compiling kernel..."
   $CC \
-    -std=gnu99 \
-    -ffreestanding \
-    -O2 \
-    -Wall -Wextra \
-    "${EXTRA_CFLAGS[@]}" \
+    "${COMMON_CFLAGS[@]}" \
     -c "$REPO_ROOT/src/kernel.c" \
     -o "$BUILD_DIR/kernel.o"
 
+  echo "[build-elf] Compiling shell..."
+  $CC \
+    "${COMMON_CFLAGS[@]}" \
+    -c "$REPO_ROOT/src/shell/shell.c" \
+    -o "$BUILD_DIR/shell.o"
+
   echo "[build-elf] Compiling terminal driver..."
   $CC \
-    -std=gnu99 \
-    -ffreestanding \
-    -O2 \
-    -Wall -Wextra \
-    "${EXTRA_CFLAGS[@]}" \
+    "${COMMON_CFLAGS[@]}" \
     -c "$REPO_ROOT/src/drivers/terminal.c" \
     -o "$BUILD_DIR/terminal.o"
+
+  echo "[build-elf] Compiling keyboard driver..."
+  $CC \
+    "${COMMON_CFLAGS[@]}" \
+    -c "$REPO_ROOT/src/drivers/keyboard.c" \
+    -o "$BUILD_DIR/keyboard.o"
 }
 
 link_kernel() {
@@ -73,12 +78,20 @@ link_kernel() {
     -ffreestanding \
     -O2 \
     -nostdlib \
-    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" "$BUILD_DIR/terminal.o" \
+    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" "$BUILD_DIR/shell.o" "$BUILD_DIR/terminal.o" "$BUILD_DIR/keyboard.o" \
     "${LIBS[@]}"
 }
 
 main() {
   select_toolchain
+  COMMON_CFLAGS=(
+    -std=gnu99
+    -ffreestanding
+    -O2
+    -Wall -Wextra
+    -I "$REPO_ROOT/src"
+    "${EXTRA_CFLAGS[@]}"
+  )
   mkdir -p "$BUILD_DIR"
 
   build_objects

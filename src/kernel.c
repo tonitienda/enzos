@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "drivers/terminal.h"
+#include "shell/shell.h"
 
 /* Check if the compiler thinks you are targeting the wrong operating system. */
 #if defined(__linux__) && !defined(ALLOW_HOST_TOOLCHAIN)
@@ -39,14 +40,15 @@ void enzos_splash(void) {
     );
 }
 
-void kernel_main(void) 
+void kernel_main(void)
 {
-	/* Initialize terminal interface */
-	terminal_initialize();
+        /* Initialize terminal interface */
+        terminal_initialize();
         enzos_splash();
 
-	terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
-	terminal_writestring("EnzOS booted successfully.\n");
-	terminal_writestring("\n");
-	terminal_writestring("$ _");
+        terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));
+        terminal_writestring("EnzOS booted successfully.\n");
+        terminal_writestring("\n");
+
+        enzos_shell();
 }
