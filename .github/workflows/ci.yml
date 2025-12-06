@@ -115,11 +115,13 @@ jobs:
           container-name: ${{ env.QEMU_CONTAINER_NAME }}
           qemu-monitor-addr: ${{ env.QEMU_MONITOR_ADDR }}
           vnc-port: ${{ env.VNC_PORT }}
+          vnc-connect-addr: ${{ env.VNC_CONNECT_ADDR }}
 
       - name: Integration test
         uses: ./.github/actions/integration-test
         with:
           container-name: ${{ env.QEMU_CONTAINER_NAME }}
+          qemu-pidfile: ${{ env.QEMU_PIDFILE }}
           qemu-monitor-addr: ${{ env.QEMU_MONITOR_ADDR }}
           vnc-port: ${{ env.VNC_PORT }}
           vnc-connect-addr: ${{ env.VNC_CONNECT_ADDR }}

@@ -4,6 +4,10 @@ inputs:
   container-name:
     description: Name of the container hosting the running VM.
     required: true
+  qemu-pidfile:
+    description: Path used for the QEMU pidfile inside the container.
+    required: false
+    default: /tmp/qemu-ci.pid
   qemu-monitor-addr:
     description: Address used by the QEMU monitor.
     required: false
@@ -24,10 +28,16 @@ runs:
       run: |
         set -euo pipefail
 
-        docker exec "${{ inputs.container-name }}" bash -c '
+        docker exec \
+          -e QEMU_MONITOR_ADDR="${{ inputs.qemu-monitor-addr }}" \
+          -e QEMU_PIDFILE="${{ inputs.qemu-pidfile }}" \
+          -e VNC_PORT="${{ inputs.vnc-port }}" \
+          -e VNC_CONNECT_ADDR="${{ inputs.vnc-connect-addr }}" \
+          "${{ inputs.container-name }}" bash -c '
           set -euo pipefail
 
           export QEMU_MONITOR_ADDR="${QEMU_MONITOR_ADDR:-${{ inputs.qemu-monitor-addr }}}"
+          export QEMU_PIDFILE="${QEMU_PIDFILE:-${{ inputs.qemu-pidfile }}}"
           export VNC_PORT="${VNC_PORT:-${{ inputs.vnc-port }}}"
           export VNC_CONNECT_ADDR="${VNC_CONNECT_ADDR:-${{ inputs.vnc-connect-addr }}}"
           export QEMU_KEEP_ALIVE=true

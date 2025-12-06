@@ -12,6 +12,10 @@ inputs:
     description: VNC port used for smoke testing.
     required: false
     default: "1"
+  vnc-connect-addr:
+    description: Host address used by VNC tooling to connect to QEMU.
+    required: false
+    default: 127.0.0.1
 runs:
   using: composite
   steps:
@@ -20,12 +24,16 @@ runs:
       run: |
         set -euo pipefail
 
-        docker exec "${{ inputs.container-name }}" bash -c '
+        docker exec \
+          -e QEMU_MONITOR_ADDR="${{ inputs.qemu-monitor-addr }}" \
+          -e VNC_PORT="${{ inputs.vnc-port }}" \
+          -e VNC_CONNECT_ADDR="${{ inputs.vnc-connect-addr }}" \
+          "${{ inputs.container-name }}" bash -c '
           set -euo pipefail
 
           export QEMU_MONITOR_ADDR="${QEMU_MONITOR_ADDR:-${{ inputs.qemu-monitor-addr }}}"
           export VNC_PORT="${VNC_PORT:-${{ inputs.vnc-port }}}"
-          export VNC_CONNECT_ADDR="${VNC_CONNECT_ADDR:-127.0.0.1}"
+          export VNC_CONNECT_ADDR="${VNC_CONNECT_ADDR:-${{ inputs.vnc-connect-addr }}}"
           export VNC_SCREENSHOT=qemu-screen-smoke.ppm
           export VNC_CLIENT_LOG=qemu-vnc-client-smoke.log
           export QEMU_VNC_LOG=qemu-vnc-server.log
