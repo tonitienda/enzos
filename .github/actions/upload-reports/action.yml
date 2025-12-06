@@ -1,0 +1,106 @@
+name: Upload Reports
+description: Convert screenshots, upload artifacts, and comment on pull requests.
+inputs:
+  github-token:
+    description: Token used for GitHub API calls.
+    required: true
+  smoke-image-name:
+    description: Filename used when uploading the smoke test screenshot.
+    required: true
+  integration-image-name:
+    description: Filename used when uploading the integration screenshot.
+    required: true
+  integration-terminal-image-name:
+    description: Filename used when uploading the terminal screenshot.
+    required: true
+outputs:
+  smoke_image_url:
+    description: URL of the uploaded smoke test screenshot.
+    value: ${{ steps.upload_vnc_images.outputs.smoke_image_url }}
+  integration_image_url:
+    description: URL of the uploaded integration screenshot.
+    value: ${{ steps.upload_vnc_images.outputs.integration_image_url }}
+  integration_terminal_image_url:
+    description: URL of the uploaded integration terminal screenshot.
+    value: ${{ steps.upload_vnc_images.outputs.integration_terminal_image_url }}
+runs:
+  using: composite
+  steps:
+    - name: Convert VNC screenshots to PNG
+      if: always()
+      shell: bash
+      run: |
+        docker run --rm \
+          -v "$PWD":/src \
+          -w /src \
+          enzos-run \
+          bash -c "if [[ -f qemu-screen-smoke.ppm ]]; then convert qemu-screen-smoke.ppm qemu-screen-smoke.png; fi; if [[ -f qemu-screen-integration.ppm ]]; then convert qemu-screen-integration.ppm qemu-screen-integration.png; fi; if [[ -f qemu-screen-integration-terminal.ppm ]]; then convert qemu-screen-integration-terminal.ppm qemu-screen-integration-terminal.png; fi"
+
+    - name: Upload VNC screenshots to repository
+      if: always()
+      id: upload_vnc_images
+      uses: actions/github-script@v7
+      env:
+        PR_SMOKE_IMAGE_NAME: ${{ inputs.smoke-image-name }}
+        PR_INTEGRATION_IMAGE_NAME: ${{ inputs.integration-image-name }}
+        PR_INTEGRATION_TERMINAL_IMAGE_NAME: ${{ inputs.integration-terminal-image-name }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const upload = require('./.github/scripts/upload-vnc-images.js');
+          module.exports = async ({ github, context, core }) => upload({ github, context, core });
+
+    - name: Upload VGA dump artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: qemu-vga-dump
+        path: |
+          qemu-vga-dump.raw.txt
+          qemu-vga-dump.txt
+        if-no-files-found: warn
+
+    - name: Upload ISO artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: enzos-iso
+        path: enzos.iso
+        if-no-files-found: ignore
+
+    - name: Upload VNC artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: qemu-vnc-artifacts
+        path: |
+          qemu-screen-smoke.ppm
+          qemu-screen-smoke.png
+          qemu-screen-integration.ppm
+          qemu-screen-integration.png
+          qemu-screen-integration-terminal.ppm
+          qemu-screen-integration-terminal.png
+          qemu-vnc-client-smoke.log
+          qemu-vnc-client-integration.log
+          qemu-vnc-client-integration-terminal.log
+          qemu-vnc-server.log
+          qemu-vga-dump.txt
+        if-no-files-found: ignore
+
+    - name: Prepare PR comment for VNC artifacts
+      if: always() && github.event_name == 'pull_request'
+      id: prepare_vnc_comment
+      shell: bash
+      env:
+        SMOKE_IMAGE_URL: ${{ steps.upload_vnc_images.outputs.smoke_image_url }}
+        INTEGRATION_IMAGE_URL: ${{ steps.upload_vnc_images.outputs.integration_image_url }}
+        INTEGRATION_TERMINAL_IMAGE_URL: ${{ steps.upload_vnc_images.outputs.integration_terminal_image_url }}
+      run: .github/scripts/prepare-vnc-comment.sh pr-vnc-comment.md
+
+    - name: Comment PR with VNC artifacts
+      if: always() && github.event_name == 'pull_request' && steps.prepare_vnc_comment.outputs.has_content == 'true'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const commentWithFile = require('./.github/scripts/comment-with-file.js');
+          module.exports = async ({ github, context, core }) => commentWithFile({ github, context, core }, 'pr-vnc-comment.md');
