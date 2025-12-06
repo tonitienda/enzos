@@ -6,6 +6,7 @@ EnzOS - tiny OS for learning purposes
 
 - ![EnzOS Smoke Test Screen](docs/splash-screen.png)
 - Integration test snapshots are uploaded by CI as artifacts and PR images so we avoid committing binary assets to the repository.
+- The PR comment now includes a post-integration terminal screenshot so reviewers can see the echo command output the Go tests drive through QEMU.
 
 The smoke screenshot comes from the same QEMU instance that continues into the integration tests. Pairing the inline smoke image with the CI-provided integration capture helps learners connect the automated checks to the on-screen behavior without bloating the repo with additional binaries.
 
