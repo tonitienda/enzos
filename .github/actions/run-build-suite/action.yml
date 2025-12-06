@@ -153,20 +153,20 @@ runs:
             ./scripts/capture-vnc.sh
 
             python - "$QEMU_MONITOR_ADDR" <<"PY"
-import socket
-import sys
+            import socket
+            import sys
 
-addr = sys.argv[1]
-host, port = addr.rsplit(":", 1)
+            addr = sys.argv[1]
+            host, port = addr.rsplit(":", 1)
 
-try:
-    with socket.create_connection((host, int(port)), timeout=2) as sock:
-        file = sock.makefile("rwb", buffering=0)
-        file.write(b"quit\n")
-        file.flush()
-except OSError:
-    pass
-PY
+            try:
+                with socket.create_connection((host, int(port)), timeout=2) as sock:
+                    file = sock.makefile("rwb", buffering=0)
+                    file.write(b"quit\n")
+                    file.flush()
+            except OSError:
+                pass
+            PY
           '
 
       - name: Validate VGA dump artifacts
