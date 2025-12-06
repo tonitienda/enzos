@@ -152,21 +152,7 @@ runs:
             VNC_CONNECT_ADDR=127.0.0.1 \
             ./scripts/capture-vnc.sh
 
-            python - "$QEMU_MONITOR_ADDR" <<"PY"
-            import socket
-            import sys
-
-            addr = sys.argv[1]
-            host, port = addr.rsplit(":", 1)
-
-            try:
-                with socket.create_connection((host, int(port)), timeout=2) as sock:
-                    file = sock.makefile("rwb", buffering=0)
-                    file.write(b"quit\n")
-                    file.flush()
-            except OSError:
-                pass
-            PY
+            go run ./scripts/qemu_monitor_client.go -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd quit || true
           '
 
     - name: Validate VGA dump artifacts
