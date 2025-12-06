@@ -1,0 +1,44 @@
+name: Start VM
+description: Boot QEMU in a long-running container for downstream tests.
+inputs:
+  container-name:
+    description: Name assigned to the container hosting the VM.
+    required: true
+  qemu-monitor-addr:
+    description: Address used by the QEMU monitor.
+    required: false
+    default: 127.0.0.1:45454
+  vnc-port:
+    description: VNC port used for the running VM.
+    required: false
+    default: "1"
+  qemu-pidfile:
+    description: Path used to persist the QEMU pidfile inside the container.
+    required: false
+    default: /tmp/qemu-ci.pid
+runs:
+  using: composite
+  steps:
+    - name: Start VM container
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        docker run --rm -d \
+          --name "${{ inputs.container-name }}" \
+          -e QEMU_MONITOR_ADDR="${{ inputs.qemu-monitor-addr }}" \
+          -e QEMU_VNC_LOG=/tmp/qemu-vnc-server.log \
+          -e QEMU_KEEP_ALIVE=true \
+          -e QEMU_PIDFILE="${{ inputs.qemu-pidfile }}" \
+          -e VNC_PORT="${{ inputs.vnc-port }}" \
+          -v "$PWD":/src \
+          -w /src \
+          enzos-run \
+          bash -c '
+            set -euo pipefail
+
+            ./scripts/qemu-smoketest.sh enzos.iso
+            tail -f /dev/null
+          '
+
+        echo "Started container ${{ inputs.container-name }} hosting QEMU with monitor ${{ inputs.qemu-monitor-addr }} and VNC port ${{ inputs.vnc-port }}."

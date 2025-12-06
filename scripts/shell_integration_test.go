@@ -57,6 +57,10 @@ func (m *monitorClient) run(t *testing.T, cmd string) string {
 func (m *monitorClient) readUntilPrompt(t *testing.T) string {
 	t.Helper()
 
+    if err := m.conn.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
+		t.Fatalf("failed to set monitor read deadline: %v", err)
+	}
+
 	var output strings.Builder
 	for {
 		line, err := m.rw.ReadString('\n')

@@ -1,0 +1,43 @@
+name: Stop VM
+description: Shut down the QEMU VM container after testing completes.
+inputs:
+  container-name:
+    description: Name of the container hosting the VM.
+    required: true
+  qemu-monitor-addr:
+    description: Address used by the QEMU monitor.
+    required: false
+    default: 127.0.0.1:45454
+  qemu-pidfile:
+    description: Path used for the QEMU pidfile inside the container.
+    required: false
+    default: /tmp/qemu-ci.pid
+runs:
+  using: composite
+  steps:
+    - name: Stop VM container
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if ! docker ps --format '{{.Names}}' | grep -q "^${{ inputs.container-name }}$"; then
+          echo "Container ${{ inputs.container-name }} is not running; skipping shutdown."
+          exit 0
+        fi
+
+        docker exec "${{ inputs.container-name }}" bash -c '
+          set -euo pipefail
+
+          go run ./scripts/cmd/qemu_monitor_client -mode exec -addr "${QEMU_MONITOR_ADDR:-${{ inputs.qemu-monitor-addr }}}" -cmd quit || true
+
+          if [[ -f "${QEMU_PIDFILE:-${{ inputs.qemu-pidfile }}}" ]]; then
+            if kill -0 "$(cat "${QEMU_PIDFILE:-${{ inputs.qemu-pidfile }}}")" 2>/dev/null; then
+              kill "$(cat "${QEMU_PIDFILE:-${{ inputs.qemu-pidfile }}}")" 2>/dev/null || true
+            fi
+          fi
+        '
+
+        docker stop "${{ inputs.container-name }}" >/dev/null || true
+        docker rm "${{ inputs.container-name }}" >/dev/null 2>&1 || true
+
+        echo "Stopped container ${{ inputs.container-name }} hosting QEMU."
