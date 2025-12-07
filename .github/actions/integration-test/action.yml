@@ -46,12 +46,32 @@ runs:
           export VNC_WAIT_SECONDS=${VNC_WAIT_SECONDS:-2}
 
           capture_integration_images() {
-            set +e
+            # Disable error-on-unset to avoid trap failures if a key variable is
+            # temporarily unset while replaying keystrokes for screenshots.
+            set +eu
 
             echo "[integration-test] Replaying echo scenario so the terminal screenshot reflects the shell exercise." >&2
-            go test ./scripts -count=1 -run TestShellEchoCommand -v -test.timeout=1m \
-              >/tmp/integration-terminal-setup.log 2>&1 || \
-              echo "[integration-test] Unable to replay echo scenario; screenshot may not show expected prompt." >&2
+
+            replay_shell_echo() {
+              local -a keys=(
+                "e" "c" "h" "o" "spc"
+                "shift-apostrophe"
+                "h" "e" "l" "l" "o" "comma" "spc"
+                "shift-w" "o" "r" "l" "d"
+                "shift-apostrophe" "ret"
+              )
+
+              : > /tmp/integration-terminal-setup.log
+              for key in "${keys[@]}"; do
+                if ! go run ./scripts/cmd/qemu_monitor_client -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd "sendkey $key" >>/tmp/integration-terminal-setup.log 2>&1; then
+                  echo "[integration-test] Unable to send key '$key' to QEMU; screenshot may not show expected prompt." >&2
+                  return
+                fi
+                sleep 0.1
+              done
+            }
+
+            replay_shell_echo
 
             local default_wait="${VNC_WAIT_SECONDS:-2}"
 
