@@ -11,8 +11,20 @@ pull_image() {
 
   local ref="${image}:${tag:-latest}"
   echo "[build] Pulling $ref for $alias ..."
-  docker pull "$ref"
-  docker tag "$ref" "$alias"
+  if docker pull "$ref"; then
+    docker tag "$ref" "$alias"
+    return 0
+  fi
+
+  if [[ -n "${tag:-}" && "${tag:-}" != "latest" ]]; then
+    echo "[build] $ref not found; falling back to ${image}:latest" >&2
+    docker pull "${image}:latest"
+    docker tag "${image}:latest" "$alias"
+    return 0
+  fi
+
+  echo "[build] Failed to pull $ref" >&2
+  return 1
 }
 
 pull_image "${BUILD_IMAGE:-}" "${BUILD_TAG:-}" enzos-build
