@@ -45,6 +45,26 @@ runs:
           export QEMU_VNC_LOG=qemu-vnc-server-integration.log
           export VNC_WAIT_SECONDS=${VNC_WAIT_SECONDS:-2}
 
+          capture_integration_images() {
+            set +e
+
+            local default_wait="${VNC_WAIT_SECONDS:-2}"
+
+            export VNC_SCREENSHOT=qemu-screen-integration.ppm
+            export VNC_CLIENT_LOG=qemu-vnc-client-integration.log
+            export VNC_WAIT_SECONDS="$default_wait"
+            ./scripts/capture-vnc.sh || true
+
+            export VNC_SCREENSHOT=qemu-screen-integration-terminal.ppm
+            export VNC_CLIENT_LOG=qemu-vnc-client-integration-terminal.log
+            export VNC_WAIT_SECONDS=3
+            ./scripts/capture-vnc.sh || true
+
+            set -e
+          }
+
+          trap capture_integration_images EXIT
+
           go run ./scripts/cmd/qemu_monitor_client -mode wait -addr "$QEMU_MONITOR_ADDR" -timeout 15s
 
           if [[ -n "$QEMU_PIDFILE" && ! -f "$QEMU_PIDFILE" ]]; then
@@ -57,14 +77,10 @@ runs:
             exit 1
           fi
 
+          set +e
           go test ./scripts -count=1 -v -test.timeout=5m
+          test_status=$?
+          set -e
 
-          export VNC_SCREENSHOT=qemu-screen-integration.ppm
-          export VNC_CLIENT_LOG=qemu-vnc-client-integration.log
-          ./scripts/capture-vnc.sh
-
-          export VNC_SCREENSHOT=qemu-screen-integration-terminal.ppm
-          export VNC_CLIENT_LOG=qemu-vnc-client-integration-terminal.log
-          export VNC_WAIT_SECONDS=3
-          ./scripts/capture-vnc.sh
+          exit "$test_status"
         '
