@@ -28,95 +28,15 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Pull build and run images (with local fallback)
+    - name: Build artifacts
       shell: bash
-      run: |
-        set -euo pipefail
-
-        pull_image() {
-          local image="$1" tag="$2" built="$3" pushable="$4" alias="$5"
-
-          if [ -z "$image" ]; then
-            echo "Image name missing for $alias image" >&2
-            return 1
-          fi
-
-          local ref
-          if [ "$built" = "true" ] && [ "$pushable" = "true" ]; then
-            ref="${image}:${tag}"
-          else
-            ref="${image}:latest"
-          fi
-
-          echo "Pulling $ref for $alias ..."
-          if docker pull "$ref"; then
-            docker tag "$ref" "$alias"
-            return 0
-          fi
-
-          echo "Pull failed for $alias; will try to build locally." >&2
-          return 1
-        }
-
-        build_image() {
-          local alias="$1" dockerfile="$2" image="$3" tag="$4"
-          echo "Building $alias from $dockerfile ..."
-          docker build -f "$dockerfile" -t "$image:$tag" -t "$image:latest" .
-          docker tag "$image:$tag" "$alias"
-        }
-
-        declare -A PIDS
-        pull_image "${{ inputs.build-image }}" "${{ inputs.build-tag }}" "${{ inputs.build-built }}" "${{ inputs.build-pushable }}" enzos-build &
-        PIDS[build]=$!
-        pull_image "${{ inputs.run-image }}" "${{ inputs.run-tag }}" "${{ inputs.run-built }}" "${{ inputs.run-pushable }}" enzos-run &
-        PIDS[run]=$!
-
-        declare -A FAILED
-        for key in "${!PIDS[@]}"; do
-          if ! wait "${PIDS[$key]}"; then
-            FAILED[$key]=1
-          fi
-        done
-
-        if ! docker image inspect enzos-build >/dev/null 2>&1; then
-          build_image enzos-build Dockerfile.build-env "${{ inputs.build-image }}" "${{ inputs.build-tag }}"
-        fi
-
-        if ! docker image inspect enzos-run >/dev/null 2>&1; then
-          build_image enzos-run Dockerfile.run-env "${{ inputs.run-image }}" "${{ inputs.run-tag }}"
-        fi
-
-    - name: Verify build environment
-      shell: bash
-      run: docker run --rm enzos-build i686-elf-gcc --version
-
-    - name: Verify run environment
-      shell: bash
-      run: docker run --rm enzos-run qemu-system-x86_64 --version
-
-    - name: Run unit tests
-      shell: bash
-      run: |
-        docker run --rm \
-          -v "$PWD":/src \
-          -w /src \
-          enzos-build \
-          bash -c "./scripts/run-tests.sh"
-
-    - name: Build kernel ELF
-      shell: bash
-      run: |
-        docker run --rm \
-          -v "$PWD":/src \
-          -w /src \
-          enzos-build \
-          bash -c "./scripts/build-elf.sh"
-
-    - name: Build ISO
-      shell: bash
-      run: |
-        docker run --rm \
-          -v "$PWD":/src \
-          -w /src \
-          enzos-build \
-          bash -c "./scripts/build-iso.sh"
+      env:
+        BUILD_IMAGE: ${{ inputs.build-image }}
+        BUILD_TAG: ${{ inputs.build-tag }}
+        BUILD_BUILT: ${{ inputs.build-built }}
+        BUILD_PUSHABLE: ${{ inputs.build-pushable }}
+        RUN_IMAGE: ${{ inputs.run-image }}
+        RUN_TAG: ${{ inputs.run-tag }}
+        RUN_BUILT: ${{ inputs.run-built }}
+        RUN_PUSHABLE: ${{ inputs.run-pushable }}
+      run: ./scripts/ci/build.sh

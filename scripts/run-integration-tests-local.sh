@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Helper script to run integration tests locally with a visible QEMU instance.
-# This mimics the CI environment but makes it easier to debug timing and rendering issues.
+# This mirrors the CI environment while keeping the monitor and VNC ports available for debugging.
 
 set -euo pipefail
 
@@ -14,6 +14,10 @@ VNC_BIND_ADDR="${VNC_BIND_ADDR:-127.0.0.1}"
 
 log() {
   printf '[run-integration-local] %s\n' "$*" >&2
+}
+
+go_tool() {
+  (cd "$PROJECT_ROOT" && go run ./cmd/main.go "$@")
 }
 
 cleanup() {
@@ -38,8 +42,6 @@ log "Starting QEMU with monitor at $QEMU_MONITOR_ADDR and VNC on port $VNC_PORT.
 log "You can connect with: vncviewer ${VNC_BIND_ADDR}:${VNC_PORT}"
 log ""
 
-# Start QEMU in the background with monitor enabled
-# Note: -serial none is used because -daemonize is incompatible with -serial stdio
 qemu-system-x86_64 \
   -cdrom "$ISO_PATH" \
   -serial none \
@@ -51,10 +53,9 @@ qemu-system-x86_64 \
   -pidfile "$QEMU_PIDFILE" \
   > /tmp/qemu-integration-local.log 2>&1
 
-# Wait for QEMU to start
 log "Waiting for QEMU monitor to be ready..."
 for i in {1..20}; do
-  if go run "$SCRIPT_DIR/cmd/qemu_monitor_client" -mode wait -addr "$QEMU_MONITOR_ADDR" -timeout 2s 2>/dev/null; then
+  if go_tool monitor wait -addr "$QEMU_MONITOR_ADDR" -timeout 2s 2>/dev/null; then
     log "QEMU monitor ready!"
     break
   fi
@@ -72,11 +73,10 @@ log ""
 log "Running integration tests..."
 log ""
 
-# Run the Go integration tests
 cd "$PROJECT_ROOT"
 export QEMU_MONITOR_ADDR
 export QEMU_PIDFILE
-go test ./scripts -v -run TestShell
+go test ./cmd -v -run TestShell
 
 log ""
 log "Tests complete. QEMU will be shut down now."

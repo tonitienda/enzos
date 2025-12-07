@@ -1,0 +1,22 @@
+package main
+
+import "testing"
+
+func TestExtractCharacters(t *testing.T) {
+    dump := "0000: 0x48 0x07 0x65 0x07 0x6c 0x07 0x6c 0x07 0x6f 0x07 0x20 0x07 0x00 0x07 0x00 0x07\n0008: 0x57 0x07 0x6f 0x07 0x72 0x07 0x6c 0x07 0x64 0x07 0x21 0x07 0x00 0x07 0x00 0x07"
+    text, err := ExtractCharacters(dump)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if text != "Hello World!" {
+		t.Fatalf("unexpected text: %q", text)
+	}
+}
+
+func TestExtractCharactersEmpty(t *testing.T) {
+	_, err := ExtractCharacters("no matches here")
+	if err == nil {
+		t.Fatalf("expected error for missing dump region")
+	}
+}

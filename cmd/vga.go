@@ -1,4 +1,4 @@
-package vga
+package main
 
 import (
 	"fmt"
@@ -8,9 +8,7 @@ import (
 	"strings"
 )
 
-const (
-	vgaColumns = 80
-)
+const vgaColumns = 80
 
 var (
 	hexBytePattern   = regexp.MustCompile(`\b0x?([0-9a-fA-F]{2})\b`)
@@ -103,6 +101,6 @@ func ExtractCharacters(contents string) (string, error) {
 	return strings.Join(formatted, "\n"), nil
 }
 
-func Usage(binName string) string {
-	return fmt.Sprintf("usage: %s <dump_path>\n", filepath.Base(binName))
+func vgaUsage(binName string) string {
+	return fmt.Sprintf("usage: %s vga extract <dump_path>\n", filepath.Base(binName))
 }

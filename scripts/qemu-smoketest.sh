@@ -3,6 +3,7 @@ set -euo pipefail
 
 ISO_PATH="${1:-enzos.iso}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VNC_SCREENSHOT="${VNC_SCREENSHOT:-}"
 VNC_CAPTURE_MODE="${VNC_CAPTURE_MODE:-internal}"
 VNC_EXTERNAL_CAPTURE_WAIT="${VNC_EXTERNAL_CAPTURE_WAIT:-15}"
@@ -21,13 +22,12 @@ log() {
   printf '[qemu-smoketest] %s\n' "$*" >&2
 }
 
+go_tool() {
+  (cd "$PROJECT_ROOT" && go run ./cmd/main.go "$@")
+}
+
 if ! command -v qemu-system-x86_64 >/dev/null 2>&1; then
   log "qemu-system-x86_64 is required to run this test."
-  exit 1
-fi
-
-if [[ -n "$VNC_SCREENSHOT" && "$VNC_CAPTURE_MODE" == "internal" ]] && ! command -v vncsnapshot >/dev/null 2>&1; then
-  log "vncsnapshot is required when VNC_SCREENSHOT is set and VNC_CAPTURE_MODE=internal."
   exit 1
 fi
 
@@ -53,7 +53,7 @@ rm -f "$VGA_RAW_OUT" "$VGA_TEXT_OUT"
 wait_for_monitor() {
   local attempts=20
   for ((i = 1; i <= attempts; i++)); do
-    if go run "$SCRIPT_DIR/cmd/qemu_monitor_client" -mode wait -addr "$QEMU_MONITOR_ADDR" -timeout 2s; then
+    if go_tool monitor wait -addr "$QEMU_MONITOR_ADDR" -timeout 2s; then
       return 0
     fi
 
@@ -67,7 +67,7 @@ wait_for_monitor() {
 
 run_monitor_command() {
   local command="$1"
-  go run "$SCRIPT_DIR/cmd/qemu_monitor_client" -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd "$command"
+  go_tool monitor exec -addr "$QEMU_MONITOR_ADDR" -cmd "$command"
 }
 
 start_qemu() {
@@ -99,7 +99,7 @@ capture_vga_dump() {
   sleep "$VGA_BOOT_WAIT"
   run_monitor_command "xp /4000bx 0xb8000" >"$VGA_DUMP_TMP"
 
-  VGA_TEXT=$(go run "$SCRIPT_DIR/cmd/qemu_vga_extract" "$VGA_DUMP_TMP")
+  VGA_TEXT=$(go_tool vga extract "$VGA_DUMP_TMP")
   cp "$VGA_DUMP_TMP" "$VGA_RAW_OUT"
   printf "%s\n" "$VGA_TEXT" >"$VGA_TEXT_OUT"
   chmod 644 "$VGA_RAW_OUT" "$VGA_TEXT_OUT"
@@ -124,21 +124,16 @@ capture_vnc_screenshot() {
     return
   fi
 
-  log "Waiting ${VNC_WAIT_SECONDS}s before attempting vncsnapshot; connect from the host with:"
-  log "  vncsnapshot ${VNC_CONNECT_ADDR}:${VNC_PORT} out.ppm"
-  log "QEMU VNC log saved to: $QEMU_VNC_LOG"
-  sleep "$VNC_WAIT_SECONDS"
-  : >"$VNC_CLIENT_LOG"
-  if ! vncsnapshot -quiet "${VNC_CONNECT_ADDR}:${VNC_PORT}" "$VNC_SCREENSHOT" >"$VNC_CLIENT_LOG" 2>&1; then
-    local status=$?
-    log "vncsnapshot failed with exit code ${status}; output follows:"
-    cat "$VNC_CLIENT_LOG" >&2
-    log "vncsnapshot log saved to: $VNC_CLIENT_LOG"
-  else
-    chmod 644 "$VNC_SCREENSHOT"
-    log "Saved VNC screenshot to: $VNC_SCREENSHOT"
-    log "vncsnapshot log saved to: $VNC_CLIENT_LOG"
+  if ! go_tool vnc capture -addr "$VNC_CONNECT_ADDR" -port "$VNC_PORT" -wait "${VNC_WAIT_SECONDS}s" -output "$VNC_SCREENSHOT" -log "$VNC_CLIENT_LOG"; then
+    log "VNC capture failed; see $VNC_CLIENT_LOG"
+    if [[ -f "$VNC_CLIENT_LOG" ]]; then
+      cat "$VNC_CLIENT_LOG" >&2 || true
+    fi
+    return
   fi
+
+  log "Saved VNC screenshot to: $VNC_SCREENSHOT"
+  log "vncsnapshot log saved to: $VNC_CLIENT_LOG"
 }
 
 start_qemu

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "[run-tests] TODO: implement unit tests"
-# Example later:
-# make test
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+(cd "$ROOT_DIR" && go test ./cmd -count=1 -run TestExtractCharacters)
