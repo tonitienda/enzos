@@ -27,20 +27,8 @@ pull_image() {
   return 1
 }
 
-select_tag() {
-  local built_flag="$1" requested_tag="$2"
-  if [[ "${built_flag}" == "true" && -n "${requested_tag}" ]]; then
-    echo "$requested_tag"
-  else
-    echo "latest"
-  fi
-}
-
-BUILD_PULL_TAG=$(select_tag "${BUILD_IMAGE_BUILT:-false}" "${BUILD_IMAGE_TAG:-${BUILD_TAG:-}}")
-RUN_PULL_TAG=$(select_tag "${RUN_IMAGE_BUILT:-false}" "${RUN_IMAGE_TAG:-${RUN_TAG:-}}")
-
-pull_image "${BUILD_IMAGE:-}" "$BUILD_PULL_TAG" enzos-build
-pull_image "${RUN_IMAGE:-}" "$RUN_PULL_TAG" enzos-run
+pull_image "${BUILD_IMAGE:-}" "${BUILD_IMAGE_TAG:-${BUILD_TAG:-}}" enzos-build
+pull_image "${RUN_IMAGE:-}" "${RUN_IMAGE_TAG:-${RUN_TAG:-}}" enzos-run
 
 docker run --rm enzos-build i686-elf-gcc --version
 docker run --rm enzos-run qemu-system-x86_64 --version
