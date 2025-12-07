@@ -180,16 +180,16 @@ jobs:
           name: enzos-changelog
           path: release-artifacts
 
-        - name: Validate release assets
-          run: |
-            set -euo pipefail
-            for file in enzos.iso qemu-screen-smoke.png qemu-screen-integration.png changelog.md; do
-              if [[ ! -f "release-artifacts/$file" ]]; then
-                echo "Missing required release artifact: $file" >&2
-                ls -la release-artifacts
-                exit 1
-              fi
-            done
+      - name: Validate release assets
+        run: |
+          set -euo pipefail
+          for file in enzos.iso qemu-screen-smoke.png qemu-screen-integration.png changelog.md; do
+            if [[ ! -f "release-artifacts/$file" ]]; then
+              echo "Missing required release artifact: $file" >&2
+              ls -la release-artifacts
+              exit 1
+            fi
+          done
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v1
