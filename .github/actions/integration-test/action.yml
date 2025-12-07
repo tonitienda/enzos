@@ -35,7 +35,11 @@ runs:
           -e VNC_PORT="${{ inputs.vnc-port }}" \
           -e VNC_CONNECT_ADDR="${{ inputs.vnc-connect-addr }}" \
           "${{ inputs.container-name }}" bash -c '
-          set -euo pipefail
+          # Keep errexit and pipefail but intentionally drop nounset here. The
+          # EXIT trap needs to replay keystrokes after Go exits, and nounset has
+          # caused the integration capture to abort with an unbound `key` error
+          # before screenshots are saved.
+          set -eo pipefail
 
           export QEMU_MONITOR_ADDR="${QEMU_MONITOR_ADDR:-${{ inputs.qemu-monitor-addr }}}"
           export QEMU_PIDFILE="${QEMU_PIDFILE:-${{ inputs.qemu-pidfile }}}"
@@ -46,12 +50,33 @@ runs:
           export VNC_WAIT_SECONDS=${VNC_WAIT_SECONDS:-2}
 
           capture_integration_images() {
+            # Allow the screenshot replay to continue even if a single keystroke
+            # send fails; the trap should always leave behind whatever evidence
+            # it can gather.
             set +e
 
             echo "[integration-test] Replaying echo scenario so the terminal screenshot reflects the shell exercise." >&2
-            go test ./scripts -count=1 -run TestShellEchoCommand -v -test.timeout=1m \
-              >/tmp/integration-terminal-setup.log 2>&1 || \
-              echo "[integration-test] Unable to replay echo scenario; screenshot may not show expected prompt." >&2
+
+            replay_shell_echo() {
+              local -a keys=(
+                "e" "c" "h" "o" "spc"
+                "shift-apostrophe"
+                "h" "e" "l" "l" "o" "comma" "spc"
+                "shift-w" "o" "r" "l" "d"
+                "shift-apostrophe" "ret"
+              )
+
+              : > /tmp/integration-terminal-setup.log
+              for key in "${keys[@]}"; do
+                if ! go run ./scripts/cmd/qemu_monitor_client -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd "sendkey $key" >>/tmp/integration-terminal-setup.log 2>&1; then
+                  echo "[integration-test] Unable to send key '$key' to QEMU; screenshot may not show expected prompt." >&2
+                  return
+                fi
+                sleep 0.1
+              done
+            }
+
+            replay_shell_echo
 
             local default_wait="${VNC_WAIT_SECONDS:-2}"
 
@@ -85,7 +110,7 @@ runs:
           test_status=$?
           set -e
 
-          trap capture_integration_images EXIT
+          trap 'capture_integration_images' EXIT
 
           exit "$test_status"
         '
