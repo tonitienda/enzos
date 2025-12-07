@@ -58,7 +58,8 @@ runs:
             echo "[integration-test] Replaying echo scenario so the terminal screenshot reflects the shell exercise." >&2
 
             replay_shell_echo() {
-              local -a keys=(
+              local keys
+              keys=(
                 "e" "c" "h" "o" "spc"
                 "shift-apostrophe"
                 "shift-h" "e" "l" "l" "o" "comma" "spc"
@@ -67,9 +68,10 @@ runs:
               )
 
               : > /tmp/integration-terminal-setup.log
-              for key in "${keys[@]}"; do
-                if ! go run ./scripts/cmd/qemu_monitor_client -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd "sendkey $key" >>/tmp/integration-terminal-setup.log 2>&1; then
-                  echo "[integration-test] Unable to send key '$key' to QEMU; screenshot may not show expected prompt." >&2
+              local k
+              for k in "${keys[@]}"; do
+                if ! go run ./scripts/cmd/qemu_monitor_client -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd "sendkey $k" >>/tmp/integration-terminal-setup.log 2>&1; then
+                  echo "[integration-test] Unable to send key '$k' to QEMU; screenshot may not show expected prompt." >&2
                   return
                 fi
                 sleep 0.1
