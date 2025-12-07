@@ -58,7 +58,7 @@ runs:
             echo "[integration-test] Replaying echo scenario so the terminal screenshot reflects the shell exercise." >&2
 
             replay_shell_echo() {
-              local keys
+              local keys=()
               keys=(
                 "e" "c" "h" "o" "spc"
                 "shift-apostrophe"
