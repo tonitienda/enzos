@@ -61,7 +61,7 @@ runs:
               local -a keys=(
                 "e" "c" "h" "o" "spc"
                 "shift-apostrophe"
-                "h" "e" "l" "l" "o" "comma" "spc"
+                "shift-h" "e" "l" "l" "o" "comma" "spc"
                 "shift-w" "o" "r" "l" "d"
                 "shift-apostrophe" "ret"
               )
@@ -80,15 +80,27 @@ runs:
 
             local default_wait="${VNC_WAIT_SECONDS:-2}"
 
+            echo "[integration-test] Capturing first integration screenshot (post-test state)..." >&2
             export VNC_SCREENSHOT=qemu-screen-integration.ppm
             export VNC_CLIENT_LOG=qemu-vnc-client-integration.log
             export VNC_WAIT_SECONDS="$default_wait"
-            ./scripts/capture-vnc.sh || true
+            if ./scripts/capture-vnc.sh; then
+              echo "[integration-test] First screenshot captured: $VNC_SCREENSHOT" >&2
+              ls -lh "$VNC_SCREENSHOT" >&2 || echo "[integration-test] WARNING: Screenshot file not found!" >&2
+            else
+              echo "[integration-test] WARNING: First screenshot capture failed!" >&2
+            fi
 
+            echo "[integration-test] Capturing second integration screenshot (terminal with longer wait)..." >&2
             export VNC_SCREENSHOT=qemu-screen-integration-terminal.ppm
             export VNC_CLIENT_LOG=qemu-vnc-client-integration-terminal.log
             export VNC_WAIT_SECONDS=3
-            ./scripts/capture-vnc.sh || true
+            if ./scripts/capture-vnc.sh; then
+              echo "[integration-test] Second screenshot captured: $VNC_SCREENSHOT" >&2
+              ls -lh "$VNC_SCREENSHOT" >&2 || echo "[integration-test] WARNING: Screenshot file not found!" >&2
+            else
+              echo "[integration-test] WARNING: Second screenshot capture failed!" >&2
+            fi
 
             set -e
           }
