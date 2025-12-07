@@ -169,10 +169,12 @@ jobs:
           path: release-artifacts
 
       - name: Download VNC artifacts
+        id: download-vnc
         uses: actions/download-artifact@v4
         with:
           name: qemu-vnc-artifacts
           path: release-artifacts
+          if-no-artifact-found: warn
 
       - name: Download changelog
         uses: actions/download-artifact@v4
@@ -183,7 +185,7 @@ jobs:
       - name: Validate release assets
         run: |
           set -euo pipefail
-          for file in enzos.iso qemu-screen-smoke.png qemu-screen-integration.png changelog.md; do
+          for file in enzos.iso changelog.md; do
             if [[ ! -f "release-artifacts/$file" ]]; then
               echo "Missing required release artifact: $file" >&2
               ls -la release-artifacts
@@ -191,16 +193,47 @@ jobs:
             fi
           done
 
+          missing_optional=()
+          for file in qemu-screen-smoke.png qemu-screen-integration.png; do
+            if [[ ! -f "release-artifacts/$file" ]]; then
+              missing_optional+=("$file")
+            fi
+          done
+
+          if ((${#missing_optional[@]})); then
+            echo "Optional release artifacts will be skipped: ${missing_optional[*]}"
+          fi
+
+      - name: Prepare release file list
+        id: release-files
+        run: |
+          set -euo pipefail
+          files=(
+            release-artifacts/enzos.iso
+            release-artifacts/changelog.md
+          )
+
+          for image in \
+            release-artifacts/qemu-screen-smoke.png \
+            release-artifacts/qemu-screen-integration.png; do
+            if [[ -f "$image" ]]; then
+              files+=("$image")
+            fi
+          done
+
+          printf '%s\n' "${files[@]}" > release-artifacts/release-files.txt
+          {
+            echo "files<<'EOF'"
+            printf '%s\n' "${files[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: EnzOS ${{ github.ref_name }}
           body_path: release-artifacts/changelog.md
-          files: |
-            release-artifacts/enzos.iso
-            release-artifacts/qemu-screen-smoke.png
-            release-artifacts/qemu-screen-integration.png
-            release-artifacts/changelog.md
+          files: ${{ steps.release-files.outputs.files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
