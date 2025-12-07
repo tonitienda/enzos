@@ -83,8 +83,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run build and test suite
-        uses: ./.github/actions/run-build-suite
+      - name: Build
+        uses: ./.github/actions/build
         with:
           build-image: ${{ env.BUILD_IMAGE }}
           build-tag: ${{ env.BUILD_IMAGE_TAG }}
