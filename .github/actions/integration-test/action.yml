@@ -63,8 +63,6 @@ runs:
             set -e
           }
 
-          trap capture_integration_images EXIT
-
           go run ./scripts/cmd/qemu_monitor_client -mode wait -addr "$QEMU_MONITOR_ADDR" -timeout 15s
 
           if [[ -n "$QEMU_PIDFILE" && ! -f "$QEMU_PIDFILE" ]]; then
@@ -81,6 +79,8 @@ runs:
           go test ./scripts -count=1 -v -test.timeout=5m
           test_status=$?
           set -e
+
+          trap capture_integration_images EXIT
 
           exit "$test_status"
         '
