@@ -96,24 +96,9 @@ jobs:
           run-pushable: ${{ env.RUN_IMAGE_PUSHABLE }}
 
       - name: Generate changelog
-        run: |
-          set -euo pipefail
-          git fetch --tags --force
-          CURRENT_TAG="${GITHUB_REF_NAME}"
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || true)
-
-          if [[ -z "$PREVIOUS_TAG" ]]; then
-            RANGE="$(git rev-list --max-parents=0 HEAD | tail -n 1)..HEAD"
-          else
-            RANGE="${PREVIOUS_TAG}..${CURRENT_TAG}"
-          fi
-
-          {
-            echo "# Changelog for ${CURRENT_TAG}"
-            echo ""
-            echo "## Commits"
-            git log --no-merges --pretty=format:"- %s (%h)" "$RANGE"
-          } > changelog.md
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: ./scripts/ci/generate-changelog.sh
 
       - name: Upload VGA dump artifact
         if: always()
@@ -183,50 +168,11 @@ jobs:
           path: release-artifacts
 
       - name: Validate release assets
-        run: |
-          set -euo pipefail
-          for file in enzos.iso changelog.md; do
-            if [[ ! -f "release-artifacts/$file" ]]; then
-              echo "Missing required release artifact: $file" >&2
-              ls -la release-artifacts
-              exit 1
-            fi
-          done
-
-          missing_optional=()
-          for file in qemu-screen-smoke.png qemu-screen-integration.png; do
-            if [[ ! -f "release-artifacts/$file" ]]; then
-              missing_optional+=("$file")
-            fi
-          done
-
-          if ((${#missing_optional[@]})); then
-            echo "Optional release artifacts will be skipped: ${missing_optional[*]}"
-          fi
+        run: ./scripts/ci/validate-release-assets.sh
 
       - name: Prepare release file list
         id: release-files
-        run: |
-          set -euo pipefail
-          files=(
-            release-artifacts/enzos.iso
-            release-artifacts/changelog.md
-          )
-
-          for image in \
-            release-artifacts/qemu-screen-smoke.png \
-            release-artifacts/qemu-screen-integration.png; do
-            if [[ -f "$image" ]]; then
-              files+=("$image")
-            fi
-          done
-
-          printf '%s\n' "${files[@]}" > release-artifacts/release-files.txt
-          {
-            echo "files<<'EOF'"
-            printf '%s\n' "${files[@]}"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+        run: ./scripts/ci/prepare-release-files.sh
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v1

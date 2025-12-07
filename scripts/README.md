@@ -11,7 +11,7 @@ This directory contains scripts for building, testing, and running EnzOS.
 
 ### Smoke Tests
 
-- **`qemu-smoketest.sh`** — Basic boot test that checks for the boot message in VGA memory
+- **`qemu-smoketest.sh`** — Basic boot test that checks for the boot message in VGA memory using the Go helper CLI
 
 **Usage:**
 
@@ -21,7 +21,7 @@ This directory contains scripts for building, testing, and running EnzOS.
 
 ### Integration Tests
 
-- **`shell_integration_test.go`** — Go-based integration tests that interact with the shell via QEMU monitor
+- **Go-based tooling (`go run ./cmd/main.go …`)** — Sends monitor commands, parses VGA output, and captures VNC screenshots
 - **`run-integration-tests-local.sh`** — Helper script to run integration tests locally with a visible QEMU instance
 
 **Running integration tests locally:**
@@ -66,33 +66,27 @@ qemu-system-x86_64 \
 
 # Terminal 2: Run the tests
 export QEMU_MONITOR_ADDR=127.0.0.1:45454
-go test ./scripts -v -run TestShell
+go test ./cmd -v -run TestShell
 ```
 
 ## Helper Tools
 
-### QEMU Monitor Client
+### Unified Go CLI
 
-A command-line tool for sending commands to QEMU's monitor interface.
-
-**Usage:**
+A single Go entry point powers monitor commands, VGA parsing, and VNC screenshot capture:
 
 ```bash
-# Wait for monitor to be ready
-go run ./scripts/cmd/qemu_monitor_client -mode wait -addr 127.0.0.1:45454 -timeout 5s
+# Wait for the QEMU monitor to come up
+go run ./cmd/main.go monitor wait --addr 127.0.0.1:45454 --timeout 5s
 
-# Execute a command
-go run ./scripts/cmd/qemu_monitor_client -mode exec -addr 127.0.0.1:45454 -cmd "xp /4000bx 0xb8000"
-```
+# Execute a monitor command
+go run ./cmd/main.go monitor exec --addr 127.0.0.1:45454 --cmd "xp /4000bx 0xb8000"
 
-### VGA Text Extractor
+# Extract readable text from a VGA dump
+go run ./cmd/main.go vga extract qemu-vga-dump.raw.txt
 
-Parses QEMU monitor VGA memory dumps and extracts readable text.
-
-**Usage:**
-
-```bash
-go run ./scripts/cmd/qemu_vga_extract vga-dump.txt
+# Capture a VNC screenshot
+go run ./cmd/main.go vnc capture --addr 127.0.0.1 --port 1 --wait 2s --output screen.ppm --log vnc.log
 ```
 
 ## CI Integration

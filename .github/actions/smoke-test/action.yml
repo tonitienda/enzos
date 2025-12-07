@@ -21,39 +21,9 @@ runs:
   steps:
     - name: Run smoke test
       shell: bash
-      run: |
-        set -euo pipefail
-
-        docker exec \
-          -w /src \
-          -e QEMU_MONITOR_ADDR="${{ inputs.qemu-monitor-addr }}" \
-          -e VNC_PORT="${{ inputs.vnc-port }}" \
-          -e VNC_CONNECT_ADDR="${{ inputs.vnc-connect-addr }}" \
-          "${{ inputs.container-name }}" bash -c '
-          set -euo pipefail
-
-          export QEMU_MONITOR_ADDR="${QEMU_MONITOR_ADDR:-${{ inputs.qemu-monitor-addr }}}"
-          export VNC_PORT="${VNC_PORT:-${{ inputs.vnc-port }}}"
-          export VNC_CONNECT_ADDR="${VNC_CONNECT_ADDR:-${{ inputs.vnc-connect-addr }}}"
-          export VNC_SCREENSHOT=qemu-screen-smoke.ppm
-          export VNC_CLIENT_LOG=qemu-vnc-client-smoke.log
-          export QEMU_VNC_LOG=qemu-vnc-server.log
-          export VNC_CAPTURE_MODE="${VNC_CAPTURE_MODE:-internal}"
-          export VNC_WAIT_SECONDS="${VNC_WAIT_SECONDS:-5}"
-
-          TEMP_VGA=$(mktemp)
-
-          go run ./scripts/cmd/qemu_monitor_client -mode wait -addr "$QEMU_MONITOR_ADDR" -timeout 15s
-          go run ./scripts/cmd/qemu_monitor_client -mode exec -addr "$QEMU_MONITOR_ADDR" -cmd "xp /4000bx 0xb8000" >"$TEMP_VGA"
-
-          VGA_TEXT=$(go run ./scripts/cmd/qemu_vga_extract "$TEMP_VGA")
-          cp "$TEMP_VGA" qemu-vga-dump.raw.txt
-          printf "%s\n" "$VGA_TEXT" > qemu-vga-dump.txt
-
-          ./scripts/capture-vnc.sh
-
-          if [[ "$VGA_TEXT" != *"EnzOS booted successfully."* ]]; then
-            echo "Boot message not found in qemu-vga-dump.raw.txt: EnzOS booted successfully." >&2
-            exit 1
-          fi
-        '
+      env:
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        QEMU_MONITOR_ADDR: ${{ inputs.qemu-monitor-addr }}
+        VNC_PORT: ${{ inputs.vnc-port }}
+        VNC_CONNECT_ADDR: ${{ inputs.vnc-connect-addr }}
+      run: ./scripts/ci/smoke-test.sh

@@ -8,3 +8,4 @@ These conventions apply to automation files under `.github`:
 - When adding tools that run on the GitHub runner, prefer small Go helpers that can be built inside the repo (aligns with our host-side language choice) and avoid sprinkling new npm dependencies.
 - Store test artifacts and screenshots in the existing `pr-images` directory so PR comments keep working without path changes.
 - Document why a workflow step is needed (e.g., how it prepares QEMU or captures VNC output) to reinforce the teaching focus of EnzOS.
+- Keep workflow steps to single-line script invocations; move multi-line logic into versioned Bash or Go helpers in the repo.

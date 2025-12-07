@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${CONTAINER_NAME:?CONTAINER_NAME is required}"
+
+QEMU_MONITOR_ADDR="${QEMU_MONITOR_ADDR:-127.0.0.1:45454}"
+VNC_PORT="${VNC_PORT:-1}"
+VNC_CONNECT_ADDR="${VNC_CONNECT_ADDR:-127.0.0.1}"
+VNC_SCREENSHOT="${VNC_SCREENSHOT:-qemu-screen-smoke.ppm}"
+VNC_CLIENT_LOG="${VNC_CLIENT_LOG:-qemu-vnc-client-smoke.log}"
+QEMU_VNC_LOG="${QEMU_VNC_LOG:-qemu-vnc-server.log}"
+VNC_CAPTURE_MODE="${VNC_CAPTURE_MODE:-internal}"
+VNC_WAIT_SECONDS="${VNC_WAIT_SECONDS:-5}"
+
+exec docker exec \
+  -w /src \
+  -e QEMU_MONITOR_ADDR="$QEMU_MONITOR_ADDR" \
+  -e VNC_PORT="$VNC_PORT" \
+  -e VNC_CONNECT_ADDR="$VNC_CONNECT_ADDR" \
+  -e VNC_SCREENSHOT="$VNC_SCREENSHOT" \
+  -e VNC_CLIENT_LOG="$VNC_CLIENT_LOG" \
+  -e QEMU_VNC_LOG="$QEMU_VNC_LOG" \
+  -e VNC_CAPTURE_MODE="$VNC_CAPTURE_MODE" \
+  -e VNC_WAIT_SECONDS="$VNC_WAIT_SECONDS" \
+  "$CONTAINER_NAME" \
+  /src/scripts/ci/inside-smoke-test.sh
