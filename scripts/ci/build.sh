@@ -40,12 +40,6 @@ if ! docker image inspect enzos-build >/dev/null 2>&1; then
   build_image enzos-build Dockerfile.build-env "${BUILD_IMAGE:-enzos-build}" "${BUILD_TAG:-latest}"
 fi
 
-# Ensure the build image carries the Go toolchain used by host-side tests.
-if ! docker run --rm enzos-build go version >/dev/null 2>&1; then
-  echo "[build] enzos-build is missing Go; rebuilding from Dockerfile.build-env ..." >&2
-  build_image enzos-build Dockerfile.build-env "${BUILD_IMAGE:-enzos-build}" "${BUILD_TAG:-latest}"
-fi
-
 if ! docker image inspect enzos-run >/dev/null 2>&1; then
   build_image enzos-run Dockerfile.run-env "${RUN_IMAGE:-enzos-run}" "${RUN_TAG:-latest}"
 fi
@@ -56,7 +50,7 @@ docker run --rm enzos-run qemu-system-x86_64 --version
 docker run --rm \
   -v "$PWD":/src \
   -w /src \
-  enzos-build \
+  enzos-run \
   bash -c "./scripts/run-tests.sh"
 
 docker run --rm \
