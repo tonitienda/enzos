@@ -1,0 +1,45 @@
+name: Docker Images
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-build-env:
+    name: Publish build-env image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build build-env image
+        uses: ./.github/actions/docker-image
+        with:
+          dockerfile: Dockerfile.build-env
+          image-name: enzos-build
+          tag: latest
+          build-args: --build-arg MAKE_JOBS=1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          force-build: ${{ github.event_name == 'workflow_dispatch' }}
+
+  build-run-env:
+    name: Publish run-env image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build run-env image
+        uses: ./.github/actions/docker-image
+        with:
+          dockerfile: Dockerfile.run-env
+          image-name: enzos-run
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: latest
+          force-build: ${{ github.event_name == 'workflow_dispatch' }}

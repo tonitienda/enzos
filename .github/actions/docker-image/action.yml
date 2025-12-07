@@ -15,6 +15,14 @@ inputs:
     description: Token with permissions to push to GHCR when enabled.
     required: false
     default: ''
+  tag:
+    description: Tag to apply to the built image. Defaults to the current commit SHA.
+    required: false
+    default: ''
+  force-build:
+    description: Force rebuilding the image regardless of Dockerfile changes.
+    required: false
+    default: 'false'
 outputs:
   image:
     description: Fully qualified image name.
@@ -23,8 +31,8 @@ outputs:
     description: Tag used for the image when building from this commit.
     value: ${{ steps.meta.outputs.tag }}
   built:
-    description: Whether the Dockerfile was modified in this run.
-    value: ${{ steps.filter.outputs.dockerfile }}
+    description: Whether the image was built in this run.
+    value: ${{ steps.decide.outputs.build }}
   pushable:
     description: Whether the current event permits pushing images.
     value: ${{ steps.pushable.outputs.pushable }}
@@ -46,21 +54,51 @@ runs:
       shell: bash
       run: |
         OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+        TAG="${{ inputs.tag }}"
+        if [[ -z "${TAG}" ]]; then
+          TAG="${GITHUB_SHA}"
+        fi
         echo "image=ghcr.io/${OWNER}/${{ inputs.image-name }}" >> "$GITHUB_OUTPUT"
-        echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+        echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
     - name: Push permission check
       id: pushable
       shell: bash
       run: |
-        if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ -n "${{ inputs.token }}" ]; then
-          echo "pushable=true" >> "$GITHUB_OUTPUT"
-        else
-          echo "pushable=false" >> "$GITHUB_OUTPUT"
+        case "${GITHUB_EVENT_NAME}" in
+          push|workflow_dispatch)
+            if [ -n "${{ inputs.token }}" ]; then
+              echo "pushable=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            ;;
+        esac
+        echo "pushable=false" >> "$GITHUB_OUTPUT"
+
+    - name: Decide whether to build
+      id: decide
+      shell: bash
+      env:
+        DOCKERFILE_CHANGED: ${{ steps.filter.outputs.dockerfile }}
+        FORCE_BUILD: ${{ inputs.force-build }}
+      run: |
+        build=false
+        reason="skipped"
+
+        if [[ "${FORCE_BUILD}" == "true" ]]; then
+          build=true
+          reason="force-build"
+        elif [[ "${DOCKERFILE_CHANGED}" == "true" ]]; then
+          build=true
+          reason="dockerfile-changed"
         fi
 
+        echo "build=${build}" >> "$GITHUB_OUTPUT"
+        echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+        echo "Build decision: ${build} (${reason})"
+
     - name: Login to GHCR
-      if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+      if: steps.decide.outputs.build == 'true' && steps.pushable.outputs.pushable == 'true'
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
@@ -68,16 +106,23 @@ runs:
         password: ${{ inputs.token }}
 
     - name: Build image
-      if: steps.filter.outputs.dockerfile == 'true'
+      if: steps.decide.outputs.build == 'true'
       shell: bash
       run: |
         IMAGE="${{ steps.meta.outputs.image }}"
         TAG="${{ steps.meta.outputs.tag }}"
         BUILD_ARGS="${{ inputs.build-args }}"
-        docker build -f "${{ inputs.dockerfile }}" -t "$IMAGE:$TAG" -t "$IMAGE:latest" $BUILD_ARGS .
+        docker pull "$IMAGE:latest" || true
+        docker build --pull \
+          --cache-from "$IMAGE:latest" \
+          -f "${{ inputs.dockerfile }}" \
+          -t "$IMAGE:$TAG" \
+          -t "$IMAGE:latest" \
+          $BUILD_ARGS \
+          .
 
     - name: Push image
-      if: steps.filter.outputs.dockerfile == 'true' && steps.pushable.outputs.pushable == 'true'
+      if: steps.decide.outputs.build == 'true' && steps.pushable.outputs.pushable == 'true'
       shell: bash
       run: |
         IMAGE="${{ steps.meta.outputs.image }}"
