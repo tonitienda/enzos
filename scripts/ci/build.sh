@@ -44,6 +44,12 @@ if ! docker image inspect enzos-run >/dev/null 2>&1; then
   build_image enzos-run Dockerfile.run-env "${RUN_IMAGE:-enzos-run}" "${RUN_TAG:-latest}"
 fi
 
+# Ensure the run image still includes Go so smoke and integration tests can use the CLI helpers.
+if ! docker run --rm enzos-run go version >/dev/null 2>&1; then
+  echo "[build] Go toolchain missing from run image; rebuilding enzos-run ..." >&2
+  build_image enzos-run Dockerfile.run-env "${RUN_IMAGE:-enzos-run}" "${RUN_TAG:-latest}"
+fi
+
 docker run --rm enzos-build i686-elf-gcc --version
 docker run --rm enzos-run qemu-system-x86_64 --version
 
