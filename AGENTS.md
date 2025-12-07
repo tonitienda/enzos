@@ -8,6 +8,8 @@ These conventions apply to all files in this repository:
 - Keep the tone educational: explain why something matters, not just what to type.
 - Keep this guide in sync with project changes so future contributors do not follow outdated practices.
 - When describing scripts, note the intent, required tools, and how to run them.
+- Keep host-side automation in Bash for orchestration (building, Docker, QEMU) and use the single Go entrypoint at `cmd/main.go` for monitor interactions, tests, and other complex tasks like VNC screenshots.
+- Avoid inline scripts in GitHub workflows or composite actions; point steps at checked-in scripts instead.
 
 ## Project Context
 
