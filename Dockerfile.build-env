@@ -14,6 +14,7 @@ RUN apt-get update && \
   libgmp3-dev \
   libmpc-dev \
   libmpfr-dev \
+  golang-go \
   texinfo \
   libisl-dev \
   wget \
