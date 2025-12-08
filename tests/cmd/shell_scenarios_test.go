@@ -56,9 +56,9 @@ func TestShellScenarios(t *testing.T) {
 	var scenarioDelay time.Duration
 
 	if demoMode {
-		keystrokeDelay = 300 * time.Millisecond // Slow typing for visibility
-		scenarioDelay = 5 * time.Second         // Pause between scenarios (5s to see results)
-		t.Logf("Demo mode enabled: slow keystrokes and 5-second pauses between scenarios")
+		keystrokeDelay = 150 * time.Millisecond // Moderate typing speed (visible but not too slow)
+		scenarioDelay = 2 * time.Second         // Brief pause between scenarios
+		t.Logf("Demo mode enabled: moderate typing speed with 2-second pauses between scenarios")
 	}
 
 	// Define test scenarios
