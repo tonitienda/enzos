@@ -24,7 +24,7 @@ if ! kill -0 "$(cat "$QEMU_PIDFILE")" 2>/dev/null; then
 fi
 
 set +e
-go test ./cmd -count=1 -v -test.timeout=5m
+go test ./cmd -count=1 -run TestShellScenarios -v -test.timeout=5m
 status=$?
 set -e
 

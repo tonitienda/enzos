@@ -89,7 +89,7 @@ func (env qemuTestEnv) captureVGABuffer(t *testing.T) (string, string) {
 	client := env.newMonitorClient(t)
 	defer client.Close()
 
-	output := client.run(t, "xp /4000bx 0xb8000")
+	output := client.run(t, fmt.Sprintf("xp /%dbx 0xb8000", vgaWordCount))
 	text, err := ExtractCharacters(output)
 	if err != nil {
 		t.Fatalf("failed to parse VGA buffer: %v\nOutput:%s", err, output)

@@ -60,6 +60,8 @@ func (m *monitorTestClient) readUntilPrompt(t *testing.T) string {
 	return output.String()
 }
 
+const vgaWordCount = 2000
+
 func runShellScenario(t *testing.T, env qemuTestEnv, keys []string, bootDelay time.Duration) string {
 	t.Helper()
 	client := env.newMonitorClient(t)
@@ -80,7 +82,7 @@ func runShellScenario(t *testing.T, env qemuTestEnv, keys []string, bootDelay ti
 
 	time.Sleep(200 * time.Millisecond)
 
-	output := client.run(t, "xp /4000bx 0xb8000")
+	output := client.run(t, fmt.Sprintf("xp /%dbx 0xb8000", vgaWordCount))
 	text, err := ExtractCharacters(output)
 	if err != nil {
 		t.Fatalf("failed to parse VGA buffer: %v\nOutput:%s", err, output)
@@ -94,7 +96,7 @@ func waitForShellPrompt(t *testing.T, client *monitorTestClient, timeout time.Du
 
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		output := client.run(t, "xp /4000bx 0xb8000")
+		output := client.run(t, fmt.Sprintf("xp /%dbx 0xb8000", vgaWordCount))
 		text, err := ExtractCharacters(output)
 		if err != nil {
 			return fmt.Errorf("failed to parse VGA buffer: %w", err)
