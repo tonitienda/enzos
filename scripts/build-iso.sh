@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Build paths
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/os"
 BUILD_DIR="$REPO_ROOT/build"
 ISO_ROOT="$REPO_ROOT/iso-root"
 BOOT_DIR="$ISO_ROOT/boot"
