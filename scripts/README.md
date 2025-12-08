@@ -9,20 +9,20 @@ This directory contains scripts for building, testing, and running EnzOS.
 
 ## Test Scripts
 
-### Smoke Tests
+### Integration Tests
 
-- **`qemu-smoketest.sh`** — Basic boot test that checks for the boot message in VGA memory using the Go helper CLI
+- **Go-based test framework** — Uses QEMU monitor to send commands, parse VGA output, and capture screenshots
+- **`integration-test.sh`** — Run shell integration tests locally with visible QEMU or in headless mode
 
 **Usage:**
 
 ```bash
-./scripts/qemu-smoketest.sh enzos.iso
+# With visible window
+./scripts/integration-test.sh
+
+# Headless mode
+./scripts/integration-test.sh --headless
 ```
-
-### Integration Tests
-
-- **Go-based tooling (`go run ./cmd/main.go …`)** — Sends monitor commands, parses VGA output, and captures VNC screenshots
-- **`run-integration-tests-local.sh`** — Helper script to run integration tests locally with a visible QEMU instance
 
 **Running integration tests locally:**
 
@@ -32,16 +32,19 @@ This directory contains scripts for building, testing, and running EnzOS.
    just build-iso
    ```
 
-2. Run the integration tests:
+2. Run the integration tests with visible window:
 
    ```bash
-   ./scripts/run-integration-tests-local.sh
+   ./scripts/run-shell-scenarios-simple.sh
    ```
 
-3. Optional: Connect with a VNC viewer to watch the tests in real-time:
+   Or run in headless mode:
+
    ```bash
-   vncviewer 127.0.0.1:1
+   ./scripts/run-shell-scenarios-simple.sh --headless
    ```
+
+3. Screenshots are automatically captured and saved as `screen-*.ppm` in the project root
 
 The script will:
 
@@ -124,7 +127,7 @@ The GitHub Actions workflow uses these scripts to:
 **Solution:**
 
 - Review the uploaded PNG screenshots in CI artifacts
-- Run tests locally with `./scripts/run-integration-tests-local.sh` and connect via VNC to watch in real-time
+- Run tests locally with `./scripts/integration-test.sh` to watch tests execute in a visible QEMU window
 - Check the VGA text dumps (`qemu-vga-dump.txt`) in CI artifacts
 
 ## Environment Variables

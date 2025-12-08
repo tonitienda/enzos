@@ -5,15 +5,21 @@
 The easiest way to run the shell scenario tests is to use the provided script:
 
 ```bash
-./scripts/run-shell-scenarios-local.sh
+./scripts/integration-test.sh
+```
+
+Or run in headless mode:
+
+```bash
+./scripts/integration-test.sh --headless
 ```
 
 This script will:
 
-1. Start QEMU with the EnzOS ISO
+1. Start QEMU with the EnzOS ISO (visible window or headless)
 2. Enable the QEMU monitor on `127.0.0.1:45454`
-3. Enable VNC on port `5901` (display `:1`)
-4. Run the shell scenario tests
+3. Run the shell scenario tests
+4. Capture screenshots during tests
 5. Clean up QEMU when done
 
 ## Manual Setup

@@ -17,7 +17,7 @@ if [[ -n "$QEMU_PIDFILE" && -f "$QEMU_PIDFILE" ]]; then
 fi
 
 # If QEMU is not running, use the simplified script
-echo "No running QEMU found, using run-shell-scenarios script" >&2
+echo "No running QEMU found, using integration-test script" >&2
 export HEADLESS=true
 export ISO_PATH=/src/enzos.iso
-exec /src/scripts/run-shell-scenarios-simple.sh --headless
+exec /src/scripts/integration-test.sh --headless

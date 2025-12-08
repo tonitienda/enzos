@@ -103,12 +103,11 @@ qemu-system-x86_64 -cdrom enzos.iso -serial stdio -no-reboot -no-shutdown
 
 - [ ] Verify "EnzOS boot OK!" appears
 
-## VNC Screenshot Capture
+## Screenshot Capture
 
-- Set `VNC_SCREENSHOT` when running `scripts/qemu-smoketest.sh` to expose a temporary VNC server while the guest boots and to record what the guest draws. QEMU binds to `${VNC_BIND_ADDR}:${VNC_PORT}` (default `0.0.0.0:1`, which maps to TCP 5901) so the CI runner can connect directly.
-- The CI workflow now keeps the QEMU process alive after the smoke test to run integration tests against the same guest. By default it writes `qemu-screen-smoke.ppm` during the smoke test and `qemu-screen-integration.ppm` after the Go integration tests drive the shell, giving us two synchronized snapshots of the same VM.
-- Prefer capturing the screenshot from the host (outside Docker) if you want to override the defaults: `VNC_SCREENSHOT=qemu-screen-custom.ppm VNC_CAPTURE_MODE=external VNC_EXTERNAL_CAPTURE_WAIT=20 just smoketest`. The script defaults to `VNC_CAPTURE_MODE=internal` so CI can run without extra tools.
-- The smoke and integration captures keep `qemu-vnc-server.log`, `qemu-vnc-client-smoke.log`, and `qemu-vnc-client-integration.log` so you can read the handshake attempts and error traces even when a snapshot fails. These logs make it easier to debug why a remote VNC client could not connect.
+- Integration tests automatically capture screenshots using QEMU's `screendump` command. Screenshots are saved as PPM files (e.g., `screen-boot.ppm`, `screen-echo.ppm`) in the project root.
+- Run tests locally with `./scripts/integration-test.sh` to watch the VM in a visible window, or use `--headless` for CI-like behavior.
+- The CI workflow uploads screenshots as artifacts for debugging test failures.
 
 ---
 
@@ -119,15 +118,16 @@ CI Setup
 - [x] Install build dependencies in workflow
 - [x] Run unit tests (if any)
 - [x] Run scripts/build-iso.sh
-- [x] Run scripts/qemu-smoketest.sh enzos.iso
+- [x] Run integration tests with shell scenarios
 
-scripts/qemu-smoketest.sh
+Integration Tests
 
-- [x] Run QEMU headless with timeout
-- [ ] Capture serial output
-- [ ] Check for "EnzOS boot OK!"
-- [x] Exit 0 if found, else exit 1
-- [ ] Verify CI goes red → fix → green
+- [x] Run QEMU headless with monitor support
+- [x] Capture VGA text output
+- [x] Execute shell commands via monitor
+- [x] Verify expected output
+- [x] Capture screenshots at key points
+- [x] Exit 0 if tests pass, else exit 1
 
 ---
 

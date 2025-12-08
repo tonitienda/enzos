@@ -46,7 +46,6 @@ log ""
 # Start QEMU in background
 qemu-system-x86_64 \
   -cdrom "$ISO_PATH" \
-  -serial none \
   -no-reboot \
   -no-shutdown \
   -monitor "tcp:${QEMU_MONITOR_ADDR},server=on,wait=off" \
@@ -83,7 +82,14 @@ go test ./cmd -v -run TestShellScenarios
 TEST_EXIT=$?
 
 log ""
-log "Tests completed. Stopping QEMU..."
-kill $QEMU_PID 2>/dev/null || true
+if [[ "$HEADLESS" == "true" ]]; then
+  log "Tests completed. Stopping QEMU..."
+  kill $QEMU_PID 2>/dev/null || true
+else
+  log "Tests completed!"
+  log "QEMU window is still open (PID $QEMU_PID)"
+  log "Close the window manually or press Ctrl+C to exit"
+  wait $QEMU_PID 2>/dev/null || true
+fi
 
 exit $TEST_EXIT
