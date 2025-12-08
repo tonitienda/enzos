@@ -1,0 +1,73 @@
+package main
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/tonitienda/enzos/tests/tools"
+)
+
+func main() {
+	// Connect to monitor
+	monitor, err := tools.NewMonitor("127.0.0.1:45454", 3*time.Second)
+	if err != nil {
+		fmt.Printf("Failed to connect: %v\n", err)
+		return
+	}
+	defer monitor.Close()
+
+	fmt.Println("Connected to monitor!")
+
+	// Wait for boot
+	fmt.Println("Waiting 5 seconds for boot...")
+	time.Sleep(5 * time.Second)
+
+	// Read VGA buffer
+	fmt.Println("\nReading VGA buffer...")
+	output, err := monitor.ReadVGABuffer(2000)
+	if err != nil {
+		fmt.Printf("Failed to read VGA: %v\n", err)
+		return
+	}
+
+	fmt.Println("Raw monitor output:")
+	fmt.Println(output)
+	fmt.Println("\n--- End raw output ---\n")
+
+	// Parse VGA text
+	text, err := tools.ExtractVGAText(output)
+	if err != nil {
+		fmt.Printf("Failed to parse VGA: %v\n", err)
+		return
+	}
+
+	fmt.Println("Parsed VGA text:")
+	fmt.Println(text)
+	fmt.Println("\n--- End parsed text ---\n")
+
+	// Try sending a key
+	fmt.Println("Sending 'h' key...")
+	if err := monitor.SendKey("h"); err != nil {
+		fmt.Printf("Failed to send key: %v\n", err)
+		return
+	}
+
+	time.Sleep(500 * time.Millisecond)
+
+	// Read VGA again
+	fmt.Println("Reading VGA after keystroke...")
+	output, err = monitor.ReadVGABuffer(2000)
+	if err != nil {
+		fmt.Printf("Failed to read VGA: %v\n", err)
+		return
+	}
+
+	text, err = tools.ExtractVGAText(output)
+	if err != nil {
+		fmt.Printf("Failed to parse VGA: %v\n", err)
+		return
+	}
+
+	fmt.Println("VGA text after keystroke:")
+	fmt.Println(text)
+}
