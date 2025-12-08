@@ -78,15 +78,17 @@ func (s *ShellRunner) ReadVGAText() (string, error) {
 
 // CommandScenario represents a shell command test scenario.
 type CommandScenario struct {
-	Name             string        // Test scenario name
-	Command          string        // Command to execute (empty for just checking boot)
-	Keys             []string      // Alternative: explicit keystroke sequence
-	Expected         string        // Expected text in output
-	BootDelay        time.Duration // Initial delay before executing command
-	PostDelay        time.Duration // Delay after command before reading output
-	WaitForPrompt    bool          // Whether to wait for prompt before executing
-	CheckPromptAfter bool          // Whether to verify prompt appears after expected text
-	Screenshot       string        // Optional: screenshot filename (e.g., "boot.ppm")
+	Name              string        // Test scenario name
+	Command           string        // Command to execute (empty for just checking boot)
+	Keys              []string      // Alternative: explicit keystroke sequence
+	Expected          string        // Expected text in output
+	BootDelay         time.Duration // Initial delay before executing command
+	PostDelay         time.Duration // Delay after command before reading output
+	KeystrokeDelay    time.Duration // Delay between keystrokes (default 100ms)
+	PostScenarioDelay time.Duration // Delay after scenario completes (for demo mode)
+	WaitForPrompt     bool          // Whether to wait for prompt before executing
+	CheckPromptAfter  bool          // Whether to verify prompt appears after expected text
+	Screenshot        string        // Optional: screenshot filename (e.g., "boot.ppm")
 }
 
 // RunScenario executes a command scenario and returns the VGA text output.
@@ -113,7 +115,11 @@ func (s *ShellRunner) RunScenario(scenario CommandScenario) (string, error) {
 
 	// Send keystrokes
 	if len(keys) > 0 {
-		if err := s.SendKeys(keys, 100*time.Millisecond); err != nil {
+		keystrokeDelay := scenario.KeystrokeDelay
+		if keystrokeDelay == 0 {
+			keystrokeDelay = 100 * time.Millisecond // Default
+		}
+		if err := s.SendKeys(keys, keystrokeDelay); err != nil {
 			return "", err
 		}
 	}
@@ -155,6 +161,11 @@ func (s *ShellRunner) RunScenario(scenario CommandScenario) (string, error) {
 		if err := s.monitor.Screenshot(scenario.Screenshot); err != nil {
 			return text, fmt.Errorf("failed to capture screenshot: %w", err)
 		}
+	}
+
+	// Post-scenario delay (for demo mode)
+	if scenario.PostScenarioDelay > 0 {
+		time.Sleep(scenario.PostScenarioDelay)
 	}
 
 	return text, nil

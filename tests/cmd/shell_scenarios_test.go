@@ -50,38 +50,61 @@ func TestShellScenarios(t *testing.T) {
 		}
 	}
 
+	// Check if demo mode is enabled (slower execution for visibility)
+	demoMode := os.Getenv("DEMO_MODE") == "1"
+	var keystrokeDelay time.Duration
+	var scenarioDelay time.Duration
+
+	if demoMode {
+		keystrokeDelay = 300 * time.Millisecond // Slow typing for visibility
+		scenarioDelay = 5 * time.Second         // Pause between scenarios (5s to see results)
+		t.Logf("Demo mode enabled: slow keystrokes and 5-second pauses between scenarios")
+	}
+
 	// Define test scenarios
 	scenarios := []tools.CommandScenario{
 		{
-			Name:          "System Boot",
-			Command:       "",              // No command, just check boot
-			Expected:      "$",             // Look for shell prompt
-			BootDelay:     6 * time.Second, // Wait for splash + boot message + shell
-			WaitForPrompt: false,
-			Screenshot:    screenshotDir + "/screen-boot.ppm",
+			Name:              "System Boot",
+			Command:           "",              // No command, just check boot
+			Expected:          "$",             // Look for shell prompt
+			BootDelay:         6 * time.Second, // Wait for splash + boot message + shell
+			WaitForPrompt:     false,
+			Screenshot:        screenshotDir + "/screen-boot.ppm",
+			PostScenarioDelay: scenarioDelay,
 		},
 		{
-			Name:             "Shell Prompt Appears",
-			Command:          "", // No command
-			Expected:         "$",
-			BootDelay:        0, // Already booted
-			WaitForPrompt:    true,
-			CheckPromptAfter: false,
+			Name:              "Shell Prompt Appears",
+			Command:           "", // No command
+			Expected:          "$",
+			BootDelay:         0, // Already booted
+			WaitForPrompt:     true,
+			CheckPromptAfter:  false,
+			PostScenarioDelay: scenarioDelay,
 		},
 		{
-			Name:             "Echo Hello World",
-			Command:          `echo "Hello, World"`,
-			Expected:         "Hello, World",
-			WaitForPrompt:    true,
-			CheckPromptAfter: true,
-			Screenshot:       screenshotDir + "/screen-echo.ppm",
+			Name:              "Echo Hello World",
+			Command:           `echo "Hello, World"`,
+			Expected:          "Hello, World",
+			WaitForPrompt:     true,
+			CheckPromptAfter:  true,
+			KeystrokeDelay:    keystrokeDelay,
+			Screenshot:        screenshotDir + "/screen-echo.ppm",
+			PostScenarioDelay: scenarioDelay,
 		},
 		{
-			Name:             "Prompt After Newline",
-			Keys:             []string{"ret"}, // Just press enter
-			Expected:         "$",
-			WaitForPrompt:    true,
-			CheckPromptAfter: true,
+			Name:              "Prompt After Newline",
+			Keys:              []string{"ret"}, // Just press enter
+			Expected:          "$",
+			WaitForPrompt:     true,
+			CheckPromptAfter:  true,
+			PostScenarioDelay: scenarioDelay,
+		},
+		{
+			Name:              "Final Screen State",
+			Command:           "",
+			Expected:          "$",
+			Screenshot:        screenshotDir + "/screen-final.ppm",
+			PostScenarioDelay: scenarioDelay,
 		},
 	}
 
@@ -93,7 +116,12 @@ func TestShellScenarios(t *testing.T) {
 				t.Fatalf("Scenario failed: %v\nVGA output:\n%s", err, text)
 			}
 
-			t.Logf("Scenario %q passed. VGA output:\n%s", scenario.Name, text)
+			// Log VGA output for debugging
+			if scenario.Name == "Final Screen State" {
+				t.Logf("=== FINAL SCREEN STATE ===\n%s\n=== END SCREEN STATE ===", text)
+			} else {
+				t.Logf("Scenario %q passed. VGA output:\n%s", scenario.Name, text)
+			}
 		})
 	}
 }

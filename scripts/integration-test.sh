@@ -39,6 +39,7 @@ if [[ "$HEADLESS" == "true" ]]; then
 else
   log "Starting QEMU with visible window..."
   log "The QEMU window will open - watch the tests run!"
+  log "Look for a window titled 'QEMU' that appears!"
   DISPLAY_ARG=""
 fi
 log ""
@@ -77,7 +78,15 @@ log ""
 cd "$PROJECT_ROOT/tests"
 export QEMU_MONITOR_ADDR
 export SCREENSHOT_DIR="$PROJECT_ROOT"
-go test ./cmd -v -run TestShellScenarios
+
+# Enable demo mode (slower execution) when not headless
+if [[ "$HEADLESS" != "true" ]]; then
+  export DEMO_MODE=1
+  log "Demo mode enabled: tests will run slowly for visibility"
+  log ""
+fi
+
+go test ./cmd -v -run TestShellScenarios -count=1
 
 TEST_EXIT=$?
 
