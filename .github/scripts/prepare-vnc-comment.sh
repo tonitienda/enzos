@@ -8,13 +8,13 @@ INTEGRATION_TERMINAL_IMAGE_URL=${INTEGRATION_TERMINAL_IMAGE_URL:-}
 
 HAS_CONTENT=false
 
-printf '## QEMU Smoke And Integration Artifacts\n' >"$COMMENT_FILE"
+printf '## QEMU OS Readiness And Integration Artifacts\n' >"$COMMENT_FILE"
 
 if [[ -n "$SMOKE_IMAGE_URL" ]]; then
   {
     echo ""
-    echo "### Smoke Test VNC Screenshot"
-    echo "![QEMU Smoke Screenshot](${SMOKE_IMAGE_URL})"
+    echo "### OS Readiness VNC Screenshot"
+    echo "![QEMU OS Readiness Screenshot](${SMOKE_IMAGE_URL})"
   } >>"$COMMENT_FILE"
   HAS_CONTENT=true
 fi
@@ -55,11 +55,24 @@ append_log_block() {
   fi
 }
 
-append_log_block "VNC Client Log (Smoke)" qemu-vnc-client-smoke.log
-append_log_block "VNC Client Log (Integration)" qemu-vnc-client-integration.log
-append_log_block "VNC Client Log (Integration Terminal)" qemu-vnc-client-integration-terminal.log
 append_log_block "VNC Server Log" qemu-vnc-server.log
 append_log_block "VGA Text Dump" qemu-vga-dump.txt
+
+extra_images=(qemu-screen-*.png)
+if [[ -e "${extra_images[0]}" ]]; then
+  HAS_CONTENT=true
+  {
+    echo ""
+    echo "### Additional Test Screenshots"
+    for image in "${extra_images[@]}"; do
+      echo "- ${image}"
+    done
+  } >>"$COMMENT_FILE"
+fi
+
+for log in qemu-vnc-client-*.log; do
+  append_log_block "VNC Client Log (${log})" "$log"
+done
 
 if [[ "$HAS_CONTENT" == true ]]; then
   echo "has_content=true" >>"$GITHUB_OUTPUT"

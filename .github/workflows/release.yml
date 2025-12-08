@@ -123,12 +123,9 @@ jobs:
         with:
           name: qemu-vnc-artifacts
           path: |
-            qemu-screen-smoke.ppm
-            qemu-screen-smoke.png
-            qemu-screen-integration.ppm
-            qemu-screen-integration.png
-            qemu-vnc-client-smoke.log
-            qemu-vnc-client-integration.log
+            qemu-screen-*.ppm
+            qemu-screen-*.png
+            qemu-vnc-client-*.log
             qemu-vnc-server.log
             qemu-vga-dump.txt
           if-no-files-found: ignore
