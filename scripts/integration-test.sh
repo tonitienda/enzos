@@ -6,7 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ISO_PATH="${ISO_PATH:-$PROJECT_ROOT/enzos.iso}"
+ISO_PATH="${ISO_PATH:-$PROJECT_ROOT/os/enzos.iso}"
 QEMU_MONITOR_ADDR="127.0.0.1:45454"
 HEADLESS="${HEADLESS:-false}"
 
