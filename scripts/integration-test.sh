@@ -29,6 +29,8 @@ if [[ ! -f "$ISO_PATH" ]]; then
   exit 1
 fi
 
+log "Using ISO: $ISO_PATH"
+
 # Clean up any existing QEMU processes
 pkill -f "qemu-system.*${ISO_PATH##*/}" 2>/dev/null || true
 sleep 1
@@ -56,13 +58,31 @@ qemu-system-x86_64 \
 QEMU_PID=$!
 log "QEMU started with PID $QEMU_PID"
 
+# Check if QEMU process is actually running
+sleep 1
+if ! kill -0 $QEMU_PID 2>/dev/null; then
+  log "ERROR: QEMU process died immediately after start"
+  wait $QEMU_PID 2>/dev/null || true
+  exit 1
+fi
+
 # Wait for QEMU to initialize and monitor to be ready
 log "Waiting for QEMU monitor..."
 for i in {1..30}; do
-  if nc -z 127.0.0.1 45454 2>/dev/null; then
-    log "Monitor is ready!"
-    break
+  # Try to connect using available tools (nc, timeout+echo, or Go)
+  if command -v nc >/dev/null 2>&1; then
+    if nc -z 127.0.0.1 45454 2>/dev/null; then
+      log "Monitor is ready!"
+      break
+    fi
+  else
+    # Fallback: try to connect with timeout
+    if timeout 1 bash -c "echo > /dev/tcp/127.0.0.1/45454" 2>/dev/null; then
+      log "Monitor is ready!"
+      break
+    fi
   fi
+  
   if [[ $i -eq 30 ]]; then
     log "Monitor didn't start in time"
     kill $QEMU_PID 2>/dev/null || true
