@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -14,25 +13,6 @@ type monitorTestClient struct {
 	addr string
 	conn net.Conn
 	rw   *bufio.ReadWriter
-}
-
-func newMonitorTestClient(t *testing.T) *monitorTestClient {
-	t.Helper()
-
-	addr := monitorAddr(t)
-	conn, err := net.DialTimeout("tcp", addr, 3*time.Second)
-	if err != nil {
-		t.Fatalf("failed to connect to qemu monitor at %s: %v", addr, err)
-	}
-
-	client := &monitorTestClient{
-		addr: addr,
-		conn: conn,
-		rw:   bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn)),
-	}
-
-	client.readUntilPrompt(t)
-	return client
 }
 
 func (m *monitorTestClient) Close() {
@@ -80,20 +60,9 @@ func (m *monitorTestClient) readUntilPrompt(t *testing.T) string {
 	return output.String()
 }
 
-func monitorAddr(t *testing.T) string {
+func runShellScenario(t *testing.T, env qemuTestEnv, keys []string, bootDelay time.Duration) string {
 	t.Helper()
-
-	addr := os.Getenv("QEMU_MONITOR_ADDR")
-	if addr == "" {
-		t.Skip("QEMU_MONITOR_ADDR not set; assuming QEMU is managed externally")
-	}
-
-	return addr
-}
-
-func runShellScenario(t *testing.T, keys []string, bootDelay time.Duration) string {
-	t.Helper()
-	client := newMonitorTestClient(t)
+	client := env.newMonitorClient(t)
 	defer client.Close()
 
 	if bootDelay > 0 {
@@ -142,39 +111,49 @@ func waitForShellPrompt(t *testing.T, client *monitorTestClient, timeout time.Du
 	return fmt.Errorf("timeout waiting for shell prompt")
 }
 
-func TestShellShowsPrompt(t *testing.T) {
-	text := runShellScenario(t, nil, 3*time.Second)
+func TestShellScenarios(t *testing.T) {
+	env := newQEMUTestEnv(t)
+	env.waitForMonitor(t)
 
-	if !strings.Contains(text, "$ ") && !strings.Contains(text, "$") {
-		t.Fatalf("prompt not rendered in VGA output: %q", text)
-	}
-}
+	t.Run("ShowsPrompt", func(t *testing.T) {
+		env.captureAfterTest(t, "qemu-screen-integration.ppm")
+		text := runShellScenario(t, env, nil, 3*time.Second)
 
-func TestShellEchoCommand(t *testing.T) {
-	keys := []string{
-		"e", "c", "h", "o", "spc",
-		"shift-apostrophe",
-		"shift-h", "e", "l", "l", "o", "comma", "spc",
-		"shift-w", "o", "r", "l", "d",
-		"shift-apostrophe",
-		"ret",
-	}
+		if !strings.Contains(text, "$ ") && !strings.Contains(text, "$") {
+			t.Fatalf("prompt not rendered in VGA output: %q", text)
+		}
+	})
 
-	text := runShellScenario(t, keys, 3*time.Second)
+	t.Run("EchoCommand", func(t *testing.T) {
+		env.captureAfterTest(t, "qemu-screen-integration-terminal.ppm")
 
-	if !strings.Contains(text, "echo \"Hello, World\"") {
-		t.Fatalf("echo command input missing from VGA output: %q", text)
-	}
+		keys := []string{
+			"e", "c", "h", "o", "spc",
+			"shift-apostrophe",
+			"shift-h", "e", "l", "l", "o", "comma", "spc",
+			"shift-w", "o", "r", "l", "d",
+			"shift-apostrophe",
+			"ret",
+		}
 
-	if !strings.Contains(text, "Hello, World") {
-		t.Fatalf("echo command did not render output: %q", text)
-	}
-}
+		text := runShellScenario(t, env, keys, 3*time.Second)
 
-func TestShellShowsPromptAfterNewline(t *testing.T) {
-	text := runShellScenario(t, []string{"ret"}, 3*time.Second)
+		if !strings.Contains(text, "echo \"Hello, World\"") {
+			t.Fatalf("echo command input missing from VGA output: %q", text)
+		}
 
-	if strings.Count(text, "$") < 2 {
-		t.Fatalf("expected prompt to reappear after newline, output: %q", text)
-	}
+		if !strings.Contains(text, "Hello, World") {
+			t.Fatalf("echo command did not render output: %q", text)
+		}
+	})
+
+	t.Run("ShowsPromptAfterNewline", func(t *testing.T) {
+		env.captureAfterTest(t)
+
+		text := runShellScenario(t, env, []string{"ret"}, 3*time.Second)
+
+		if strings.Count(text, "$") < 2 {
+			t.Fatalf("expected prompt to reappear after newline, output: %q", text)
+		}
+	})
 }

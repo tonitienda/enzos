@@ -1,5 +1,5 @@
-name: Smoke Test
-description: Run QEMU smoke testing and validate VGA output using a running VM.
+name: OS Readiness Test
+description: Run the Go-based readiness test suite and validate VGA output using a running VM.
 inputs:
   container-name:
     description: Name of the container hosting the running VM.

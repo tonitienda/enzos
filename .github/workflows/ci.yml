@@ -109,7 +109,7 @@ jobs:
           qemu-pidfile: ${{ env.QEMU_PIDFILE }}
           vnc-port: ${{ env.VNC_PORT }}
 
-      - name: Smoke test
+      - name: OS readiness test
         uses: ./.github/actions/smoke-test
         with:
           container-name: ${{ env.QEMU_CONTAINER_NAME }}
