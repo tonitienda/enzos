@@ -86,6 +86,7 @@ type CommandScenario struct {
 	PostDelay        time.Duration // Delay after command before reading output
 	WaitForPrompt    bool          // Whether to wait for prompt before executing
 	CheckPromptAfter bool          // Whether to verify prompt appears after expected text
+	Screenshot       string        // Optional: screenshot filename (e.g., "boot.ppm")
 }
 
 // RunScenario executes a command scenario and returns the VGA text output.
@@ -146,6 +147,13 @@ func (s *ShellRunner) RunScenario(scenario CommandScenario) (string, error) {
 
 		if !strings.Contains(text, ShellPrompt) && !strings.Contains(text, "$") {
 			return text, fmt.Errorf("prompt did not appear after expected output")
+		}
+	}
+
+	// Take screenshot if requested
+	if scenario.Screenshot != "" {
+		if err := s.monitor.Screenshot(scenario.Screenshot); err != nil {
+			return text, fmt.Errorf("failed to capture screenshot: %w", err)
 		}
 	}
 

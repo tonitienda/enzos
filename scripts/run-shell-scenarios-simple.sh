@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Simple script to run shell scenario tests with QEMU
-# Usage: ./scripts/run-shell-scenarios-simple.sh
+# Usage: ./scripts/run-shell-scenarios-simple.sh [--headless]
 
 set -euo pipefail
 
@@ -8,6 +8,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ISO_PATH="${ISO_PATH:-$PROJECT_ROOT/enzos.iso}"
 QEMU_MONITOR_ADDR="127.0.0.1:45454"
+HEADLESS="${HEADLESS:-false}"
+
+# Parse arguments
+for arg in "$@"; do
+  case "$arg" in
+    --headless)
+      HEADLESS=true
+      ;;
+  esac
+done
 
 log() {
   printf '[shell-scenarios] %s\n' "$*" >&2
@@ -23,17 +33,24 @@ fi
 pkill -f "qemu-system.*${ISO_PATH##*/}" 2>/dev/null || true
 sleep 1
 
-log "Starting QEMU with visible window..."
-log "The QEMU window will open - watch the tests run!"
+if [[ "$HEADLESS" == "true" ]]; then
+  log "Starting QEMU in headless mode..."
+  DISPLAY_ARG="-display none"
+else
+  log "Starting QEMU with visible window..."
+  log "The QEMU window will open - watch the tests run!"
+  DISPLAY_ARG=""
+fi
 log ""
 
-# Start QEMU in background (visible window)
+# Start QEMU in background
 qemu-system-x86_64 \
   -cdrom "$ISO_PATH" \
   -serial none \
   -no-reboot \
   -no-shutdown \
   -monitor "tcp:${QEMU_MONITOR_ADDR},server=on,wait=off" \
+  $DISPLAY_ARG \
   &
 
 QEMU_PID=$!
@@ -60,6 +77,7 @@ log ""
 
 cd "$PROJECT_ROOT/tests"
 export QEMU_MONITOR_ADDR
+export SCREENSHOT_DIR="$PROJECT_ROOT"
 go test ./cmd -v -run TestShellScenarios
 
 TEST_EXIT=$?

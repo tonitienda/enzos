@@ -93,3 +93,9 @@ func (m *Monitor) SendKey(key string) error {
 func (m *Monitor) ReadVGABuffer(wordCount int) (string, error) {
 	return m.Run(fmt.Sprintf("xp /%dbx 0xb8000", wordCount))
 }
+
+// Screenshot captures the current screen to a PPM file using QEMU's screendump command.
+func (m *Monitor) Screenshot(filename string) error {
+	_, err := m.Run(fmt.Sprintf("screendump %s", filename))
+	return err
+}

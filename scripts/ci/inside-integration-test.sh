@@ -3,29 +3,21 @@ set -euo pipefail
 
 QEMU_MONITOR_ADDR="${QEMU_MONITOR_ADDR:-127.0.0.1:45454}"
 QEMU_PIDFILE="${QEMU_PIDFILE:-/tmp/qemu-ci.pid}"
-VNC_PORT="${VNC_PORT:-1}"
-VNC_CONNECT_ADDR="${VNC_CONNECT_ADDR:-127.0.0.1}"
-VNC_WAIT_SECONDS="${VNC_WAIT_SECONDS:-2}"
 
 export QEMU_MONITOR_ADDR
-export QEMU_PIDFILE
-export VNC_PORT
-export VNC_CONNECT_ADDR
-export VNC_WAIT_SECONDS
 
-if [[ -n "$QEMU_PIDFILE" && ! -f "$QEMU_PIDFILE" ]]; then
-  echo "QEMU pidfile missing at $QEMU_PIDFILE; cannot run integration tests." >&2
-  exit 1
+# Check if QEMU is already running (started by start-vm action)
+if [[ -n "$QEMU_PIDFILE" && -f "$QEMU_PIDFILE" ]]; then
+  if kill -0 "$(cat "$QEMU_PIDFILE")" 2>/dev/null; then
+    echo "Using existing QEMU process from pidfile $QEMU_PIDFILE" >&2
+    # Run tests against already-running QEMU
+    cd /src/tests
+    exec go test ./cmd -count=1 -run TestShellScenarios -v -test.timeout=5m
+  fi
 fi
 
-if ! kill -0 "$(cat "$QEMU_PIDFILE")" 2>/dev/null; then
-  echo "QEMU process not running after boot (pidfile: $QEMU_PIDFILE)." >&2
-  exit 1
-fi
-
-set +e
-go test ./cmd -count=1 -run TestShellScenarios -v -test.timeout=5m
-status=$?
-set -e
-
-exit "$status"
+# If QEMU is not running, use the simplified script
+echo "No running QEMU found, using run-shell-scenarios script" >&2
+export HEADLESS=true
+export ISO_PATH=/src/enzos.iso
+exec /src/scripts/run-shell-scenarios-simple.sh --headless

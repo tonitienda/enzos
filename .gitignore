@@ -69,3 +69,4 @@ qemu-vga-dump.raw.txt
 qemu-vga-dump.txt
 qemu-vnc-client.log
 qemu-vnc-server.log
+*.ppm

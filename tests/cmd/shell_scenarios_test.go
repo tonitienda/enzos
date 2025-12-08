@@ -40,6 +40,16 @@ func TestShellScenarios(t *testing.T) {
 	// Create shell runner
 	shell := tools.NewShellRunner(monitor)
 
+	// Get screenshot directory (current working directory or project root)
+	screenshotDir := os.Getenv("SCREENSHOT_DIR")
+	if screenshotDir == "" {
+		if wd, err := os.Getwd(); err == nil {
+			screenshotDir = wd
+		} else {
+			screenshotDir = "/tmp"
+		}
+	}
+
 	// Define test scenarios
 	scenarios := []tools.CommandScenario{
 		{
@@ -48,6 +58,7 @@ func TestShellScenarios(t *testing.T) {
 			Expected:      "$",             // Look for shell prompt
 			BootDelay:     6 * time.Second, // Wait for splash + boot message + shell
 			WaitForPrompt: false,
+			Screenshot:    screenshotDir + "/screen-boot.ppm",
 		},
 		{
 			Name:             "Shell Prompt Appears",
@@ -63,6 +74,7 @@ func TestShellScenarios(t *testing.T) {
 			Expected:         "Hello, World",
 			WaitForPrompt:    true,
 			CheckPromptAfter: true,
+			Screenshot:       screenshotDir + "/screen-echo.ppm",
 		},
 		{
 			Name:             "Prompt After Newline",
