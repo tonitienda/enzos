@@ -27,6 +27,9 @@ jobs:
       - name: Build ISO
         run: ./scripts/build-iso.sh
 
+      - name: Validate release assets
+        run: ./scripts/ci/validate-release-assets.sh .
+
       - name: QEMU smoke test
         run: ./scripts/qemu-smoketest.sh enzos.iso
 
