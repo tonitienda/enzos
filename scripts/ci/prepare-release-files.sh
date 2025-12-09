@@ -18,7 +18,7 @@ done
 printf '%s\n' "${files[@]}" > release-artifacts/release-files.txt
 
 {
-  echo "files<<'EOF'"
+  echo "files<<EOF"
   printf '%s\n' "${files[@]}"
   echo "EOF"
 } >> "${GITHUB_OUTPUT:?GITHUB_OUTPUT is required}"
