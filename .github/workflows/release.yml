@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'   # v0.1.0, v1.0.0, etc.
+      - "v*" # v0.1.0, v1.0.0, etc.
 
 permissions:
   contents: write
@@ -70,8 +70,6 @@ jobs:
       RUN_IMAGE_TAG: ${{ needs.build-run-env.outputs.tag }}
       RUN_IMAGE_BUILT: ${{ needs.build-run-env.outputs.built }}
       RUN_IMAGE_PUSHABLE: ${{ needs.build-run-env.outputs.pushable }}
-      PR_SMOKE_IMAGE_NAME: qemu-screen-smoke-${{ github.run_id }}-${{ github.run_attempt }}.png
-      PR_INTEGRATION_IMAGE_NAME: qemu-screen-integration-${{ github.run_id }}-${{ github.run_attempt }}.png
 
     steps:
       - name: Checkout
@@ -95,39 +93,32 @@ jobs:
           run-built: ${{ env.RUN_IMAGE_BUILT }}
           run-pushable: ${{ env.RUN_IMAGE_PUSHABLE }}
 
+      - name: Run integration tests
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -w /src \
+            enzos-run \
+            /src/scripts/integration-test.sh --headless
+
+      - name: Upload test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screenshots
+          path: screen-*.ppm
+          if-no-files-found: warn
+
       - name: Generate changelog
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: ./scripts/ci/generate-changelog.sh
-
-      - name: Upload VGA dump artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: qemu-vga-dump
-          path: |
-            qemu-vga-dump.raw.txt
-            qemu-vga-dump.txt
-          if-no-files-found: warn
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: enzos-iso
           path: enzos.iso
-          if-no-files-found: ignore
-
-      - name: Upload VNC artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: qemu-vnc-artifacts
-          path: |
-            qemu-screen-*.ppm
-            qemu-screen-*.png
-            qemu-vnc-client-*.log
-            qemu-vnc-server.log
-            qemu-vga-dump.txt
           if-no-files-found: ignore
 
       - name: Upload changelog
@@ -150,13 +141,12 @@ jobs:
           name: enzos-iso
           path: release-artifacts
 
-      - name: Download VNC artifacts
-        id: download-vnc
+      - name: Download test screenshots
         uses: actions/download-artifact@v4
         with:
-          name: qemu-vnc-artifacts
+          name: test-screenshots
           path: release-artifacts
-          if-no-artifact-found: warn
+          continue-on-error: true
 
       - name: Download changelog
         uses: actions/download-artifact@v4

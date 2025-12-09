@@ -42,15 +42,7 @@ smoketest:
             enzos-dev \
             bash -c "./scripts/qemu-smoketest.sh enzos.iso"
 
-enzos:
-    # Set VNC_PASSWORD in your environment to override the default
-    docker run --rm \
-            -v "$PWD":/src \
-            -w /src \
-            -e VNC_PASSWORD="${VNC_PASSWORD:-enzos}" \
-            enzos-dev \
-            bash -c "./scripts/build-elf.sh && ./scripts/build-iso.sh"
-    PW=${VNC_PASSWORD:-enzos}
+run-enzos:
     ISO=enzos.iso
     qemu-system-x86_64 -cdrom "$ISO" \
       -display none \

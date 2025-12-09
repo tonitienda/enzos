@@ -38,14 +38,14 @@ These helpers automate the host-side flow so you can stay focused on kernel beha
 
 - **build-elf.sh** – Picks a toolchain automatically: it prefers the i686 cross compiler from the Docker image but falls back to `gcc -m32` and `as --32` when you install `gcc-multilib` locally. When it uses the host toolchain it defines `ALLOW_HOST_TOOLCHAIN` so the kernel sources compile without the tutorial guardrails.
 - **build-iso.sh** – Compiles the kernel, links it, stages the GRUB configuration, and invokes `grub-mkrescue` to produce `enzos.iso`. It requires GRUB utilities plus xorriso and mtools; installing the Docker image or the matching host packages keeps the flow reproducible for learners.
-- **qemu-smoketest.sh** – Boots the ISO headlessly, dumps the VGA text buffer via the Go CLI, and looks for `"EnzOS booted successfully."`. Set `VNC_SCREENSHOT=docs/assets/qemu-vga.png` to start a temporary VNC server on `${VNC_BIND_ADDR}:${VNC_PORT}` (TCP `5900+VNC_PORT`) so CI can connect from the host; the script saves server and client logs plus an optional screenshot to help you debug why VNC connections failed.
-- **run-tests.sh** – Executes `go test ./cmd` so host-side tooling (monitor commands, VGA parsing, and VNC helpers) stays healthy.
+- **integration-test.sh** – Runs shell integration tests with QEMU monitor interaction and VGA text parsing. Supports visible window or headless mode. Automatically captures screenshots during tests.
 
   ```bash
   # Common usage while experimenting with the boot flow
   ./scripts/build-iso.sh
-  VNC_SCREENSHOT=docs/assets/qemu-vga.png ./scripts/qemu-smoketest.sh enzos.iso
-  ./scripts/run-tests.sh
+  ./scripts/integration-test.sh
+  # Or run in headless mode
+  ./scripts/integration-test.sh --headless
   ```
 
 ## Next Steps

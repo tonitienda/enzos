@@ -36,12 +36,6 @@ docker run --rm enzos-run qemu-system-x86_64 --version
 docker run --rm \
   -v "$PWD":/src \
   -w /src \
-  enzos-run \
-  bash -c "./scripts/run-tests.sh"
-
-docker run --rm \
-  -v "$PWD":/src \
-  -w /src \
   enzos-build \
   bash -c "./scripts/build-elf.sh"
 
