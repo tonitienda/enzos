@@ -118,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: enzos-iso
-          path: enzos.iso
+          path: os/enzos.iso
           if-no-files-found: ignore
 
       - name: Upload changelog
