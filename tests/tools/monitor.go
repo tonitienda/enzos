@@ -96,6 +96,16 @@ func (m *Monitor) ReadVGABuffer(wordCount int) (string, error) {
 
 // Screenshot captures the current screen to a PPM file using QEMU's screendump command.
 func (m *Monitor) Screenshot(filename string) error {
-	_, err := m.Run(fmt.Sprintf("screendump %s", filename))
-	return err
+	if _, err := m.Run(fmt.Sprintf("screendump %s", filename)); err != nil {
+		return err
+	}
+
+	if strings.HasSuffix(filename, ".ppm") {
+		pngPath := strings.TrimSuffix(filename, ".ppm") + ".png"
+		if err := ConvertPPMToPNG(filename, pngPath); err != nil {
+			return fmt.Errorf("failed to convert screenshot to PNG: %w", err)
+		}
+	}
+
+	return nil
 }

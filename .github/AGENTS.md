@@ -9,3 +9,4 @@ These conventions apply to automation files under `.github`:
 - Store test artifacts and screenshots in the existing `pr-images` directory so PR comments keep working without path changes.
 - Document why a workflow step is needed (e.g., how it prepares QEMU or captures VNC output) to reinforce the teaching focus of EnzOS.
 - Keep workflow steps to single-line script invocations; move multi-line logic into versioned Bash or Go helpers in the repo.
+- When handling PR screenshots, avoid hard-coded filenames; iterate over the generated `qemu-screen-*.png` captures so new scenarios automatically flow into comments and PR images.

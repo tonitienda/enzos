@@ -11,6 +11,7 @@ These conventions apply to all files in this repository:
 - Keep host-side automation in Bash for orchestration (building, Docker, QEMU) and use the single Go entrypoint at `cmd/main.go` for monitor interactions, tests, and other complex tasks like VNC screenshots.
 - Use Go to observe and test the OS; keep ISO creation and release artifact steps in Bash without introducing Go dependencies.
 - Avoid inline scripts in GitHub workflows or composite actions; point steps at checked-in scripts instead.
+- Integration screenshots live in `qemu-screen-*.ppm` with PNG siblings generated for CI artifacts, PR comments, and release bundles.
 
 ## Testing Notes
 

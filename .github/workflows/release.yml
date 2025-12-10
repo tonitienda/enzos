@@ -106,7 +106,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-screenshots
-          path: screen-*.ppm
+          path: |
+            qemu-screen-*.png
+            qemu-screen-*.ppm
           if-no-files-found: warn
 
       - name: Generate changelog

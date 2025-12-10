@@ -2,39 +2,25 @@
 set -euo pipefail
 
 COMMENT_FILE=${1:-pr-vnc-comment.md}
-SMOKE_IMAGE_URL=${SMOKE_IMAGE_URL:-}
-INTEGRATION_IMAGE_URL=${INTEGRATION_IMAGE_URL:-}
-INTEGRATION_TERMINAL_IMAGE_URL=${INTEGRATION_TERMINAL_IMAGE_URL:-}
+UPLOADED_IMAGES=${UPLOADED_IMAGES:-}
 
 HAS_CONTENT=false
 
 printf '## QEMU OS Readiness And Integration Artifacts\n' >"$COMMENT_FILE"
 
-if [[ -n "$SMOKE_IMAGE_URL" ]]; then
+if [[ -n "$UPLOADED_IMAGES" ]]; then
+  HAS_CONTENT=true
   {
     echo ""
-    echo "### OS Readiness VNC Screenshot"
-    echo "![QEMU OS Readiness Screenshot](${SMOKE_IMAGE_URL})"
+    echo "### Test Screenshots"
   } >>"$COMMENT_FILE"
-  HAS_CONTENT=true
-fi
 
-if [[ -n "$INTEGRATION_IMAGE_URL" ]]; then
-  {
-    echo ""
-    echo "### Integration Test VNC Screenshot"
-    echo "![QEMU Integration Screenshot](${INTEGRATION_IMAGE_URL})"
-  } >>"$COMMENT_FILE"
-  HAS_CONTENT=true
-fi
-
-if [[ -n "$INTEGRATION_TERMINAL_IMAGE_URL" ]]; then
-  {
-    echo ""
-    echo "### Post-Integration Terminal Screenshot"
-    echo "![QEMU Integration Terminal Screenshot](${INTEGRATION_TERMINAL_IMAGE_URL})"
-  } >>"$COMMENT_FILE"
-  HAS_CONTENT=true
+  while IFS='|' read -r name url; do
+    if [[ -z "$name" || -z "$url" ]]; then
+      continue
+    fi
+    echo "- ![${name}](${url})" >>"$COMMENT_FILE"
+  done <<<"$UPLOADED_IMAGES"
 fi
 
 append_log_block() {
@@ -57,18 +43,6 @@ append_log_block() {
 
 append_log_block "VNC Server Log" qemu-vnc-server.log
 append_log_block "VGA Text Dump" qemu-vga-dump.txt
-
-extra_images=(qemu-screen-*.png)
-if [[ -e "${extra_images[0]}" ]]; then
-  HAS_CONTENT=true
-  {
-    echo ""
-    echo "### Additional Test Screenshots"
-    for image in "${extra_images[@]}"; do
-      echo "- ${image}"
-    done
-  } >>"$COMMENT_FILE"
-fi
 
 for log in qemu-vnc-client-*.log; do
   append_log_block "VNC Client Log (${log})" "$log"
