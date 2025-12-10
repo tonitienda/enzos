@@ -51,6 +51,12 @@ build_objects() {
     -c "$REPO_ROOT/src/kernel.c" \
     -o "$BUILD_DIR/kernel.o"
 
+  echo "[build-elf] Compiling filesystem..."
+  $CC \
+    "${COMMON_CFLAGS[@]}" \
+    -c "$REPO_ROOT/src/fs.c" \
+    -o "$BUILD_DIR/fs.o"
+
   echo "[build-elf] Compiling shell..."
   $CC \
     "${COMMON_CFLAGS[@]}" \
@@ -84,7 +90,7 @@ link_kernel() {
     -ffreestanding \
     -O2 \
     -nostdlib \
-    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" "$BUILD_DIR/shell.o" "$BUILD_DIR/commands.o" "$BUILD_DIR/terminal.o" "$BUILD_DIR/keyboard.o" \
+    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" "$BUILD_DIR/fs.o" "$BUILD_DIR/shell.o" "$BUILD_DIR/commands.o" "$BUILD_DIR/terminal.o" "$BUILD_DIR/keyboard.o" \
     "${LIBS[@]}"
 }
 

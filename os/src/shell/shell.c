@@ -2,7 +2,90 @@
 #include <stddef.h>
 #include "drivers/keyboard.h"
 #include "drivers/terminal.h"
+#include "fs.h"
 #include "shell/commands.h"
+#include "shell/shell.h"
+
+static char* capture_buffer = NULL;
+static size_t capture_capacity = 0;
+static size_t capture_length = 0;
+static bool capture_active = false;
+
+void shell_capture_output_begin(char* buffer, size_t capacity)
+{
+	capture_buffer = buffer;
+	capture_capacity = capacity;
+	capture_length = 0;
+
+	if (capture_buffer && capture_capacity > 0) {
+		capture_buffer[0] = '\0';
+	}
+
+	capture_active = true;
+}
+
+void shell_capture_output_end(void)
+{
+	capture_active = false;
+	capture_buffer = NULL;
+	capture_capacity = 0;
+	capture_length = 0;
+}
+
+void shell_output_char(char c)
+{
+	if (capture_active && capture_buffer && capture_capacity > 0) {
+		if (capture_length + 1 < capture_capacity) {
+			capture_buffer[capture_length++] = c;
+			capture_buffer[capture_length] = '\0';
+		}
+		return;
+	}
+
+	terminal_putchar(c);
+}
+
+void shell_output_string(const char* data)
+{
+	size_t i = 0;
+
+	if (!data) {
+		return;
+	}
+
+	while (data[i] != '\0') {
+		shell_output_char(data[i]);
+		++i;
+	}
+}
+
+void shell_print_path(FSNode* node)
+{
+	FSNode* stack[32];
+	int depth = 0;
+
+	while (node && depth < 32) {
+		stack[depth++] = node;
+		node = node->parent;
+	}
+
+	for (int i = depth - 1; i >= 0; --i) {
+		FSNode* current = stack[i];
+
+		if (!current->parent) {
+			shell_output_char('/');
+			if (i == 0) {
+				return;
+			}
+			continue;
+		}
+
+		shell_output_string(current->name);
+		if (i > 0) {
+			shell_output_char('/');
+		}
+	}
+}
 
 static void print_prompt(void)
 {
@@ -56,6 +139,30 @@ static size_t tokenize(char* input, char* argv[], size_t max_args)
 	return argc;
 }
 
+static int find_redirect_index(char* argv[], size_t argc)
+{
+	for (size_t i = 0; i < argc; i++) {
+		if (argv[i][0] == '>' && argv[i][1] == '\0') {
+			return (int)i;
+		}
+	}
+
+	return -1;
+}
+
+static void dispatch_command(char* argv[], size_t argc)
+{
+	if (!argv[0]) {
+		return;
+	}
+
+	if (commands_execute(argv[0], (const char* const*)&argv[1]) == -1) {
+		shell_output_string("Command ");
+		shell_output_string(argv[0]);
+		shell_output_string(" not found.\n");
+	}
+}
+
 static void handle_command(char* input)
 {
 	char* argv[8];
@@ -68,11 +175,39 @@ static void handle_command(char* input)
 
 	argv[argc] = NULL;
 
-	if (commands_execute(argv[0], (const char* const*)&argv[1]) == -1) {
-		terminal_writestring("Command ");
-		terminal_writestring(argv[0]);
-		terminal_writestring(" not found.\n");
+	int redirect_index = find_redirect_index(argv, argc);
+	if (redirect_index != -1) {
+		char* filename;
+		char buffer[1024];
+		FSNode* cwd;
+		FSNode* file;
+
+		if ((size_t)redirect_index + 1 >= argc) {
+			shell_output_string("redirection: missing file\n");
+			return;
+		}
+
+		filename = argv[redirect_index + 1];
+		argv[redirect_index] = NULL;
+
+		shell_capture_output_begin(buffer, sizeof(buffer));
+		dispatch_command(argv, (size_t)redirect_index);
+		shell_capture_output_end();
+
+		cwd = fs_get_cwd();
+		file = fs_lookup(cwd, filename);
+		if (!file) {
+			file = fs_create_file(cwd, filename);
+		}
+
+		if (!file || fs_write(file, buffer) != 0) {
+			shell_output_string("redirection: failed to write file\n");
+		}
+
+		return;
 	}
+
+	dispatch_command(argv, argc);
 }
 
 void enzos_shell(void)

@@ -2,6 +2,20 @@
 
 EnzOS - tiny OS for learning purposes
 
+## In-Memory Filesystem Commands
+
+EnzOS now boots with a minimal RAM-backed filesystem to keep shell exercises self contained. The shell exposes a handful of commands that mirror common UNIX basics without requiring any storage drivers:
+
+- `pwd` prints the current working directory using parent pointers.
+- `ls` shows directory contents, suffixing directories with `/`.
+- `cd <path>` navigates relative or absolute paths with `.` and `..` support.
+- `mkdir <dir>` creates directories for later navigation.
+- `touch <file>` creates empty files in the current directory.
+- `cat <file>` reads file contents when present.
+- `echo ... > <file>` captures command output and writes it into a file without touching the screen.
+
+These commands keep students focused on path resolution and text I/O while reinforcing how the kernel and shell cooperate without persistence hardware.
+
 ## QEMU Screenshots
 
 - ![EnzOS Smoke Test Screen](docs/splash-screen.png)
