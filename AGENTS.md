@@ -12,6 +12,10 @@ These conventions apply to all files in this repository:
 - Use Go to observe and test the OS; keep ISO creation and release artifact steps in Bash without introducing Go dependencies.
 - Avoid inline scripts in GitHub workflows or composite actions; point steps at checked-in scripts instead.
 
+## Testing Notes
+
+- The shell integration tests focus on two scenarios: verifying the OS is ready (prompt appears) and confirming `echo` output. Each scenario should capture its own screenshot after the assertions pass to keep artifacts aligned with the checks.
+
 ## Project Context
 
 - EnzOS is a tiny teaching OS; briefly explain how new documentation or tooling supports learning the platform (e.g., simplifying boot flows or clarifying build steps).
