@@ -57,6 +57,12 @@ build_objects() {
     -c "$REPO_ROOT/src/shell/shell.c" \
     -o "$BUILD_DIR/shell.o"
 
+  echo "[build-elf] Compiling shell commands..."
+  $CC \
+    "${COMMON_CFLAGS[@]}" \
+    -c "$REPO_ROOT/src/shell/commands.c" \
+    -o "$BUILD_DIR/commands.o"
+
   echo "[build-elf] Compiling terminal driver..."
   $CC \
     "${COMMON_CFLAGS[@]}" \
@@ -78,7 +84,7 @@ link_kernel() {
     -ffreestanding \
     -O2 \
     -nostdlib \
-    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" "$BUILD_DIR/shell.o" "$BUILD_DIR/terminal.o" "$BUILD_DIR/keyboard.o" \
+    "$BUILD_DIR/kernel_entry.o" "$BUILD_DIR/kernel.o" "$BUILD_DIR/shell.o" "$BUILD_DIR/commands.o" "$BUILD_DIR/terminal.o" "$BUILD_DIR/keyboard.o" \
     "${LIBS[@]}"
 }
 

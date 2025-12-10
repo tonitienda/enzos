@@ -2,69 +2,84 @@
 #include <stddef.h>
 #include "drivers/keyboard.h"
 #include "drivers/terminal.h"
-
-static size_t kstrlen(const char* str)
-{
-        size_t len = 0;
-        while (str[len]) {
-                len++;
-        }
-        return len;
-}
-
-static bool has_prefix(const char* text, const char* prefix)
-{
-        for (size_t i = 0; prefix[i] != '\0'; i++) {
-                if (text[i] != prefix[i]) {
-                        return false;
-                }
-        }
-        return true;
-}
+#include "shell/commands.h"
 
 static void print_prompt(void)
 {
-        terminal_writestring("$ ");
+	terminal_writestring("$ ");
 }
 
-static void handle_command(const char* input)
+static size_t tokenize(char* input, char* argv[], size_t max_args)
 {
-        if (kstrlen(input) == 0) {
-                return;
-        }
+	size_t argc = 0;
+	size_t i = 0;
 
-        if (has_prefix(input, "echo ")) {
-                terminal_writestring(input + 5);
-                terminal_putchar('\n');
-                return;
-        }
+	while (input[i] != '\0' && argc < max_args) {
+	        while (input[i] == ' ') {
+	                i++;
+	        }
 
-        terminal_writestring("Unknown command\n");
+	        if (input[i] == '\0') {
+	                break;
+	        }
+
+	        argv[argc++] = &input[i];
+
+	        while (input[i] != '\0' && input[i] != ' ') {
+	                i++;
+	        }
+
+	        if (input[i] == ' ') {
+	                input[i] = '\0';
+	                i++;
+	        }
+	}
+
+	return argc;
+}
+
+static void handle_command(char* input)
+{
+	char* argv[8];
+	size_t argc;
+
+	argc = tokenize(input, argv, sizeof(argv) - 1);
+	if (argc == 0) {
+	        return;
+	}
+
+	argv[argc] = NULL;
+
+	if (commands_execute(argv[0], (const char* const*)&argv[1]) == -1) {
+	        terminal_writestring("Command ");
+	        terminal_writestring(argv[0]);
+	        terminal_writestring(" not found.\n");
+	}
 }
 
 void enzos_shell(void)
 {
-        char input[128];
-        size_t length = 0;
+	char input[128];
+	size_t length = 0;
 
-        keyboard_initialize();
-        print_prompt();
+	keyboard_initialize();
+	print_prompt();
 
-        while (true) {
-                char c = keyboard_getchar();
+	while (true) {
+	        char c = keyboard_getchar();
 
-                if (c == '\n') {
-                        terminal_putchar('\n');
-                        input[length] = '\0';
-                        handle_command(input);
-                        length = 0;
-                        print_prompt();
-                        continue;
-                }
+	        if (c == '\n') {
+	                terminal_putchar('\n');
+	                input[length] = '\0';
+	                handle_command(input);
+	                length = 0;
+	                print_prompt();
+	                continue;
+	        }
 
-                if (length < sizeof(input) - 1) {
-                        input[length++] = c;
-                        terminal_putchar(c);
-                }
-        }
+	        if (length < sizeof(input) - 1) {
+	                input[length++] = c;
+	                terminal_putchar(c);
+	        }
+	}
 }
