@@ -77,6 +77,7 @@ func TestShellScenarios(t *testing.T) {
 			Name:              "Echo Hello World",
 			Command:           `echo "Hello, World"`,
 			Expected:          "Hello, World",
+			Unexpected:        []string{"\"Hello, World\""},
 			WaitForPrompt:     true,
 			CheckPromptAfter:  true,
 			KeystrokeDelay:    keystrokeDelay,

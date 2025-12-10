@@ -126,8 +126,15 @@ Integration Tests
 - [x] Capture VGA text output
 - [x] Execute shell commands via monitor
 - [x] Verify expected output
+- [x] Keep each scenario's expected and unexpected shell output in the example definition (for instance, quoted arguments should not echo surrounding quotes)
 - [x] Capture screenshots at key points
 - [x] Exit 0 if tests pass, else exit 1
+
+### Shell Tokenization
+
+- The shell groups characters inside double quotes into a single argument and strips the quotes before dispatching commands, which keeps `echo "Hello, World"` aligned with typical shell behavior and our integration tests.
+- When stripping quotes, capture the delimiter before null-terminating the token so subsequent arguments are still parsed (otherwise the space gets clobbered and later arguments disappear).
+- If you tweak parsing rules, update both the command tokenizer and the test expectations together so learners see consistent guidance.
 
 ---
 
