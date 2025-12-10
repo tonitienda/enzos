@@ -106,5 +106,30 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-screenshots
-          path: screen-*.ppm
+          path: |
+            qemu-screen-*.png
+            qemu-screen-*.ppm
           if-no-files-found: warn
+
+      - name: Upload VNC screenshots to repository
+        if: always()
+        id: upload_vnc_images
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: "const upload = require('./.github/scripts/upload-vnc-images.js'); await upload({ github, context, core });"
+
+      - name: Prepare PR comment for screenshots
+        if: always() && github.event_name == 'pull_request'
+        id: prepare_vnc_comment
+        shell: bash
+        env:
+          UPLOADED_IMAGES: ${{ steps.upload_vnc_images.outputs.images }}
+        run: .github/scripts/prepare-vnc-comment.sh pr-vnc-comment.md
+
+      - name: Comment PR with screenshots
+        if: always() && github.event_name == 'pull_request' && steps.prepare_vnc_comment.outputs.has_content == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: "const commentWithFile = require('./.github/scripts/comment-with-file.js'); await commentWithFile({ github, context, core }, 'pr-vnc-comment.md');"

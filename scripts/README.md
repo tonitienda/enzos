@@ -44,7 +44,7 @@ This directory contains scripts for building, testing, and running EnzOS.
    ./scripts/run-shell-scenarios-simple.sh --headless
    ```
 
-3. Screenshots are automatically captured and saved as `screen-*.ppm` in the project root
+3. Screenshots are automatically captured as `qemu-screen-*.ppm` in the project root and converted to matching PNG files for CI artifacts and PR comments.
 
 The script will:
 

@@ -57,49 +57,44 @@ module.exports = async ({ github, context, core }) => {
     }
   };
 
-  const screenshots = [
-    {
-      label: 'smoke',
-      source: 'qemu-screen-smoke.png',
-      upload: `.github/pr-images/${process.env.PR_SMOKE_IMAGE_NAME}`,
-      readmePath: 'docs/splash-screen.png',
-    },
-    {
-      label: 'integration',
-      source: 'qemu-screen-integration.png',
-      upload: `.github/pr-images/${process.env.PR_INTEGRATION_IMAGE_NAME}`,
-      readmePath: 'docs/integration-screen.png',
-    },
-    {
-      label: 'integration_terminal',
-      source: 'qemu-screen-integration-terminal.png',
-      upload: `.github/pr-images/${process.env.PR_INTEGRATION_TERMINAL_IMAGE_NAME}`,
-      readmePath: 'docs/integration-terminal-screen.png',
-    },
-  ];
+  const screenshots = new Set();
+  for (const entry of fs.readdirSync(process.cwd())) {
+    if (entry.match(/^qemu-screen-.*\.png$/)) {
+      screenshots.add(entry);
+    }
+    if (entry.match(/^qemu-screen-.*\.ppm$/)) {
+      const pngName = entry.replace(/\.ppm$/, '.png');
+      ensurePngFromPpm(pngName);
+      screenshots.add(pngName);
+    }
+  }
 
-  const results = {};
-  for (const shot of screenshots) {
-    ensurePngFromPpm(shot.source);
-
-    if (!fs.existsSync(shot.source)) {
-      core.info(`No ${shot.label} screenshot found at ${shot.source}; skipping upload.`);
+  const uploadedImages = [];
+  for (const fileName of Array.from(screenshots).sort()) {
+    const sourcePath = `./${fileName}`;
+    if (!fs.existsSync(sourcePath)) {
+      core.info(`Skipping missing screenshot ${sourcePath}.`);
       continue;
     }
 
-    const content = fs.readFileSync(shot.source).toString('base64');
-    const uploadResponse = await upsertFile(shot.upload, `Add ${shot.label} VNC screenshot for #${prNumber}`, content);
-    await upsertFile(shot.readmePath, `Update README ${shot.label} screen for #${prNumber}`, content);
+    const uploadPath = `.github/pr-images/${fileName}`;
+    const content = fs.readFileSync(sourcePath).toString('base64');
+    const uploadResponse = await upsertFile(
+      uploadPath,
+      `Add ${fileName} VNC screenshot for #${prNumber}`,
+      content,
+    );
 
     const imageUrl = uploadResponse.data.content.download_url
-      || `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${shot.upload}`;
-    core.info(`Uploaded ${shot.label} VNC screenshot to ${imageUrl}`);
-    core.info(`Updated README screenshot at ${shot.readmePath}`);
-    results[`${shot.label}_image_url`] = imageUrl;
+      || `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${uploadPath}`;
+    core.info(`Uploaded ${fileName} to ${imageUrl}`);
+    uploadedImages.push({ name: fileName, url: imageUrl });
   }
 
-  core.setOutput('smoke_image_url', results.smoke_image_url || '');
-  core.setOutput('integration_image_url', results.integration_image_url || '');
-  core.setOutput('integration_terminal_image_url', results.integration_terminal_image_url || '');
-  return results;
+  core.setOutput(
+    'images',
+    uploadedImages.map((image) => `${image.name}|${image.url}`).join('\n'),
+  );
+
+  return { uploadedImages };
 };

@@ -105,9 +105,9 @@ qemu-system-x86_64 -cdrom enzos.iso -serial stdio -no-reboot -no-shutdown
 
 ## Screenshot Capture
 
-- Integration tests automatically capture screenshots using QEMU's `screendump` command. Screenshots are saved as PPM files (e.g., `screen-boot.ppm`, `screen-echo.ppm`) in the project root.
+- Integration tests automatically capture screenshots using QEMU's `screendump` command. Each PPM file (for example, `qemu-screen-smoke.ppm`) is converted to a matching PNG (`qemu-screen-smoke.png`) in the project root for easy sharing.
 - Run tests locally with `./scripts/integration-test.sh` to watch the VM in a visible window, or use `--headless` for CI-like behavior.
-- The CI workflow uploads screenshots as artifacts for debugging test failures.
+- The CI workflow uploads PNG screenshots as artifacts and shares them in pull requests to speed up debugging.
 
 ---
 

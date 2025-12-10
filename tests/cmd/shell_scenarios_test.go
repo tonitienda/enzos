@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -69,7 +70,7 @@ func TestShellScenarios(t *testing.T) {
 			Expected:          "$",
 			BootDelay:         6 * time.Second, // Wait for splash + boot message + shell
 			WaitForPrompt:     true,
-			Screenshot:        screenshotDir + "/screen-ready.ppm",
+			Screenshot:        filepath.Join(screenshotDir, "qemu-screen-smoke.ppm"),
 			PostScenarioDelay: scenarioDelay,
 		},
 		{
@@ -79,7 +80,7 @@ func TestShellScenarios(t *testing.T) {
 			WaitForPrompt:     true,
 			CheckPromptAfter:  true,
 			KeystrokeDelay:    keystrokeDelay,
-			Screenshot:        screenshotDir + "/screen-echo.ppm",
+			Screenshot:        filepath.Join(screenshotDir, "qemu-screen-integration.ppm"),
 			PostScenarioDelay: scenarioDelay,
 		},
 	}
@@ -95,5 +96,9 @@ func TestShellScenarios(t *testing.T) {
 			// Log VGA output for debugging
 			t.Logf("Scenario %q passed. VGA output:\n%s", scenario.Name, text)
 		})
+	}
+
+	if err := monitor.Screenshot(filepath.Join(screenshotDir, "qemu-screen-integration-terminal.ppm")); err != nil {
+		t.Fatalf("Failed to capture terminal screenshot: %v", err)
 	}
 }
