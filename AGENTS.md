@@ -16,6 +16,9 @@ These conventions apply to all files in this repository:
 ## Testing Notes
 
 - The shell integration tests focus on two scenarios: verifying the OS is ready (prompt appears) and confirming `echo` output. Each scenario should capture its own screenshot after the assertions pass to keep artifacts aligned with the checks.
+- Treat quoted arguments as single tokens in shell scenarios (e.g., `echo "Hello, World"` prints `Hello, World` without quotes); update expectations and fixtures whenever argument parsing changes.
+- Express positive and negative expectations in each scenario definition (for example, use `Unexpected` to block echoed quotes) instead of adding ad-hoc `if` statements inside the loop that runs the examples.
+- When checking `Unexpected` output, filter out the echoed command line so negative assertions focus on program output rather than the prompt + command text.
 
 ## Project Context
 
