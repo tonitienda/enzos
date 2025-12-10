@@ -84,6 +84,34 @@ func TestShellScenarios(t *testing.T) {
 			Screenshot:        filepath.Join(screenshotDir, "qemu-screen-integration.ppm"),
 			PostScenarioDelay: scenarioDelay,
 		},
+		{
+			Name:             "Filesystem PWD",
+			Command:          "pwd",
+			Expected:         "/",
+			WaitForPrompt:    true,
+			CheckPromptAfter: true,
+		},
+		{
+			Name:             "Touch And List",
+			Command:          "touch notes\nls",
+			Expected:         "notes",
+			WaitForPrompt:    true,
+			CheckPromptAfter: true,
+		},
+		{
+			Name:             "Write And Cat",
+			Command:          "echo hello world > notes\ncat notes",
+			Expected:         "hello world",
+			WaitForPrompt:    true,
+			CheckPromptAfter: true,
+		},
+		{
+			Name:             "Change Directory",
+			Command:          "cd /\nmkdir home\ncd home\npwd",
+			Expected:         "/home",
+			WaitForPrompt:    true,
+			CheckPromptAfter: true,
+		},
 	}
 
 	// Run scenarios sequentially

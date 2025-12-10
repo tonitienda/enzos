@@ -214,6 +214,8 @@ func CommandToKeys(command string) []string {
 			keys = append(keys, "comma")
 		case '.':
 			keys = append(keys, "dot")
+		case '>':
+			keys = append(keys, "shift-dot")
 		case '-':
 			keys = append(keys, "minus")
 		case '=':
