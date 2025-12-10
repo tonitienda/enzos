@@ -82,6 +82,7 @@ type CommandScenario struct {
 	Command           string        // Command to execute (empty for just checking boot)
 	Keys              []string      // Alternative: explicit keystroke sequence
 	Expected          string        // Expected text in output
+	Unexpected        []string      // Text fragments that must not appear in output
 	BootDelay         time.Duration // Initial delay before executing command
 	PostDelay         time.Duration // Delay after command before reading output
 	KeystrokeDelay    time.Duration // Delay between keystrokes (default 100ms)
@@ -140,6 +141,12 @@ func (s *ShellRunner) RunScenario(scenario CommandScenario) (string, error) {
 	// Verify expected text if specified
 	if scenario.Expected != "" && !strings.Contains(text, scenario.Expected) {
 		return text, fmt.Errorf("expected text %q not found in output", scenario.Expected)
+	}
+
+	for _, unexpected := range scenario.Unexpected {
+		if strings.Contains(text, unexpected) {
+			return text, fmt.Errorf("unexpected text %q found in output", unexpected)
+		}
 	}
 
 	// Verify prompt appears after expected text if requested

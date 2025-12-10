@@ -15,24 +15,41 @@ static size_t tokenize(char* input, char* argv[], size_t max_args)
 	size_t i = 0;
 
 	while (input[i] != '\0' && argc < max_args) {
-	        while (input[i] == ' ') {
-	                i++;
-	        }
+		while (input[i] == ' ') {
+			++i;
+		}
 
-	        if (input[i] == '\0') {
-	                break;
-	        }
+		if (input[i] == '\0') {
+			break;
+		}
 
-	        argv[argc++] = &input[i];
+		argv[argc++] = &input[i];
 
-	        while (input[i] != '\0' && input[i] != ' ') {
-	                i++;
-	        }
+		bool in_quotes = false;
+		size_t write_pos = i;
 
-	        if (input[i] == ' ') {
-	                input[i] = '\0';
-	                i++;
-	        }
+		while (input[i] != '\0') {
+			char current = input[i];
+
+			if (current == '"') {
+				in_quotes = !in_quotes;
+				++i;
+				continue;
+			}
+
+			if (!in_quotes && current == ' ') {
+				break;
+			}
+
+			input[write_pos++] = current;
+			++i;
+		}
+
+		input[write_pos] = '\0';
+
+		if (input[i] == ' ') {
+			++i;
+		}
 	}
 
 	return argc;
