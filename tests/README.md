@@ -16,11 +16,9 @@ Or run in headless mode:
 
 This script will:
 
-1. Start QEMU with the EnzOS ISO (visible window or headless)
-2. Enable the QEMU monitor on `127.0.0.1:45454`
-3. Run the shell scenario tests
-4. Capture screenshots during tests
-5. Clean up QEMU when done
+1. Start QEMU with the EnzOS ISO (visible window or headless) and enable the monitor on `127.0.0.1:45454`
+2. Run two shell scenarios—checking the OS is ready (prompt available) and verifying `echo` output—capturing a screenshot after each
+3. Clean up QEMU when done
 
 ## Manual Setup
 

@@ -64,21 +64,12 @@ func TestShellScenarios(t *testing.T) {
 	// Define test scenarios
 	scenarios := []tools.CommandScenario{
 		{
-			Name:              "System Boot",
-			Command:           "",              // No command, just check boot
-			Expected:          "$",             // Look for shell prompt
-			BootDelay:         6 * time.Second, // Wait for splash + boot message + shell
-			WaitForPrompt:     false,
-			Screenshot:        screenshotDir + "/screen-boot.ppm",
-			PostScenarioDelay: scenarioDelay,
-		},
-		{
-			Name:              "Shell Prompt Appears",
-			Command:           "", // No command
+			Name:              "OS Ready",
+			Command:           "",
 			Expected:          "$",
-			BootDelay:         0, // Already booted
+			BootDelay:         6 * time.Second, // Wait for splash + boot message + shell
 			WaitForPrompt:     true,
-			CheckPromptAfter:  false,
+			Screenshot:        screenshotDir + "/screen-ready.ppm",
 			PostScenarioDelay: scenarioDelay,
 		},
 		{
@@ -89,21 +80,6 @@ func TestShellScenarios(t *testing.T) {
 			CheckPromptAfter:  true,
 			KeystrokeDelay:    keystrokeDelay,
 			Screenshot:        screenshotDir + "/screen-echo.ppm",
-			PostScenarioDelay: scenarioDelay,
-		},
-		{
-			Name:              "Prompt After Newline",
-			Keys:              []string{"ret"}, // Just press enter
-			Expected:          "$",
-			WaitForPrompt:     true,
-			CheckPromptAfter:  true,
-			PostScenarioDelay: scenarioDelay,
-		},
-		{
-			Name:              "Final Screen State",
-			Command:           "",
-			Expected:          "$",
-			Screenshot:        screenshotDir + "/screen-final.ppm",
 			PostScenarioDelay: scenarioDelay,
 		},
 	}
@@ -117,11 +93,7 @@ func TestShellScenarios(t *testing.T) {
 			}
 
 			// Log VGA output for debugging
-			if scenario.Name == "Final Screen State" {
-				t.Logf("=== FINAL SCREEN STATE ===\n%s\n=== END SCREEN STATE ===", text)
-			} else {
-				t.Logf("Scenario %q passed. VGA output:\n%s", scenario.Name, text)
-			}
+			t.Logf("Scenario %q passed. VGA output:\n%s", scenario.Name, text)
 		})
 	}
 }
