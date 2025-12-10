@@ -85,7 +85,7 @@
         EnzOS booted successfully.
         
         $ echo "Hello, World"
-        "Hello, World"
+        Hello, World
         $
 === RUN   TestShellScenarios/Prompt_After_Newline
     shell_scenarios_test.go:106: Scenario "Prompt After Newline" passed. VGA output:
@@ -112,7 +112,7 @@
         EnzOS booted successfully.
         
         $ echo "Hello, World"
-        "Hello, World"
+        Hello, World
         $
 === RUN   TestShellScenarios/Final_Screen_State
     shell_scenarios_test.go:104: === FINAL SCREEN STATE ===
@@ -139,7 +139,7 @@
         EnzOS booted successfully.
         
         $ echo "Hello, World"
-        "Hello, World"
+        Hello, World
         $
         === END SCREEN STATE ===
 --- PASS: TestShellScenarios (9.67s)

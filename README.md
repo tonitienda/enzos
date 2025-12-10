@@ -126,6 +126,7 @@ Integration Tests
 - [x] Capture VGA text output
 - [x] Execute shell commands via monitor
 - [x] Verify expected output
+- [x] Keep each scenario's expected and unexpected shell output in the example definition (for instance, quoted arguments should not echo surrounding quotes)
 - [x] Capture screenshots at key points
 - [x] Exit 0 if tests pass, else exit 1
 
