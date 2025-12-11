@@ -380,6 +380,8 @@ static FSNode* resolve_parent_for_path(const char* path, char* leaf, size_t leaf
 
 static void dispatch_command(char* argv[], size_t argc)
 {
+	(void)argc;
+
 	if (!argv[0]) {
 		return;
 	}

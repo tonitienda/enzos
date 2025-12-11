@@ -149,39 +149,6 @@ static int detach_child(FSNode* node)
         return 0;
 }
 
-static int detach_child_keep_tree(FSNode* node)
-{
-        FSNode* parent;
-        int index = -1;
-
-        if (!node || !node->parent) {
-                return -1;
-        }
-
-        parent = node->parent;
-
-        for (int i = 0; i < parent->child_count; ++i) {
-                if (parent->children[i] == node) {
-                        index = i;
-                        break;
-                }
-        }
-
-        if (index == -1) {
-                return -1;
-        }
-
-        for (int i = index; i < parent->child_count - 1; ++i) {
-                        parent->children[i] = parent->children[i + 1];
-        }
-
-        parent->children[parent->child_count - 1] = NULL;
-        parent->child_count--;
-        node->parent = NULL;
-
-        return 0;
-}
-
 int fs_is_dir(FSNode* node)
 {
         return node && node->type == NODE_DIR;

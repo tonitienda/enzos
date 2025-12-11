@@ -18,7 +18,7 @@ EnzOS now boots with a minimal RAM-backed filesystem to keep shell exercises sel
 - `tree [path]` prints a nested view of the filesystem so learners can visualize parent/child links in memory.
 - `cp [-r] <src>... <dst>` copies files or whole directory trees when `-r` is present, reinforcing why recursive traversal matters.
 - `mv <src>... <dst>` renames or relocates files and directories without allowing the root to move or a node to land inside its descendants.
-- `clear` resets the terminal buffer, `history` prints the last 32 commands for parser debugging, and `alias name="value"` expands simple shortcuts like `alias h="history"`.
+- `clear` resets the terminal buffer and cursor to the origin, `history` prints the last 32 commands for parser debugging, and `alias name="value"` expands simple shortcuts like `alias h="history"`.
 
 All file-manipulation commands accept absolute or relative paths, and every token honors `.` and `..` semantics so learners practice path resolution as they navigate.
 

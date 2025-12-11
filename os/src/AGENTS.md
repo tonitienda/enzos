@@ -8,3 +8,4 @@ Guidelines for kernel and driver code under `src/`:
 - Avoid heap allocation and dynamic buffers; prefer fixed-size stacks and simple string routines like the existing `strlen`/`kstrlen` helpers.
 - When expanding shell commands or drivers, favor straightforward control flow with early returns and keep VGA/keyboard access confined to the driver layer.
 - Explain how a change helps readers understand OS fundamentals (e.g., why a new command demonstrates input handling or VGA writes).
+- Terminal helpers now expose cursor positioning and a clear routine; reuse them from the shell instead of duplicating VGA buffer loops.
