@@ -585,17 +585,12 @@ void enzos_shell(void)
 		}
 
 		if (c == '\b') {
-			if (length > 0 && terminal_column > prompt_col) {
-				size_t col;
-				size_t row;
+			size_t col = terminal_column;
+			size_t row = terminal_row;
 
-				col = terminal_column;
-				row = terminal_row;
-
+			if (length > 0 && col > prompt_col) {
 				/* Move cursor back */
-				if (col > 0) {
-					col--;
-				}
+				col--;
 
 				terminal_set_cursor(col, row);
 				terminal_putchar(' ');
