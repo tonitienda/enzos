@@ -36,6 +36,10 @@ void terminal_initialize(void);
 
 void terminal_setcolor(uint8_t color);
 
+void terminal_clear_screen(void);
+
+void terminal_set_cursor(size_t column, size_t row);
+
 void terminal_writestring(const char* data);
 
 void terminal_putchar(char c);

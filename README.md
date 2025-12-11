@@ -9,13 +9,18 @@ EnzOS now boots with a minimal RAM-backed filesystem to keep shell exercises sel
 - `pwd` prints the current working directory using parent pointers.
 - `ls` shows directory contents, suffixing directories with `/`.
 - `cd <path>` navigates relative or absolute paths with `.` and `..` support.
-- `mkdir <dir>` creates directories for later navigation (re-invocations are harmless).
-- `touch <file>` creates empty files in the current directory.
-- `cat <file>` reads file contents when present.
-- `echo ... > <file>` captures command output and writes it into a file without touching the screen.
+- `mkdir [-p] <path>` creates directories (with `-p` auto-creating parents so nested exercises stay concise).
+- `touch <path>` creates empty files anywhere in the tree without dropping to the destination directory first.
+- `cat <path>` reads file contents when present.
+- `echo ... > <file>` captures command output and writes it into a file without touching the screen, while `>>` appends to an existing file.
 - `rmdir <dir>` removes empty directories so students see the difference between deleting files and folder structures.
 - `rm [-r] <path>` deletes files and, with `-r`, prunes whole directory trees to illustrate recursive traversal.
 - `tree [path]` prints a nested view of the filesystem so learners can visualize parent/child links in memory.
+- `cp [-r] <src>... <dst>` copies files or whole directory trees when `-r` is present, reinforcing why recursive traversal matters.
+- `mv <src>... <dst>` renames or relocates files and directories without allowing the root to move or a node to land inside its descendants.
+- `clear` resets the terminal buffer and cursor to the origin, `history` prints the last 32 commands for parser debugging, and `alias name="value"` expands simple shortcuts like `alias h="history"`.
+
+All file-manipulation commands accept absolute or relative paths, and every token honors `.` and `..` semantics so learners practice path resolution as they navigate.
 
 These commands keep students focused on path resolution and text I/O while reinforcing how the kernel and shell cooperate without persistence hardware.
 
@@ -150,9 +155,10 @@ Integration Tests
 
 ### Shell Tokenization
 
-- The shell groups characters inside double quotes into a single argument and strips the quotes before dispatching commands, which keeps `echo "Hello, World"` aligned with typical shell behavior and our integration tests.
+- The shell groups characters inside double quotes into a single argument, strips the quotes before dispatching commands, and honors escapes like `\n`, `\t`, `\"`, and `\ ` for whitespace.
+- Command substitution syntax (`$(...)`) is treated literally for now, which keeps parser complexity low for newcomers.
 - When stripping quotes, capture the delimiter before null-terminating the token so subsequent arguments are still parsed (otherwise the space gets clobbered and later arguments disappear).
-- If you tweak parsing rules, update both the command tokenizer and the test expectations together so learners see consistent guidance.
+- If you tweak parsing rules or redirection, update both the command tokenizer and the test expectations together so learners see consistent guidance.
 
 ---
 

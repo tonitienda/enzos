@@ -53,6 +53,37 @@ void terminal_setcolor(uint8_t color)
 	terminal_color = color;
 }
 
+void terminal_clear_screen(void)
+{
+	for (size_t y = 0; y < VGA_HEIGHT; y++)
+	{
+		for (size_t x = 0; x < VGA_WIDTH; x++)
+		{
+			const size_t index = y * VGA_WIDTH + x;
+			terminal_buffer[index] = vga_entry(' ', terminal_color);
+		}
+	}
+
+	terminal_row = 0;
+	terminal_column = 0;
+}
+
+void terminal_set_cursor(size_t column, size_t row)
+{
+	if (column >= VGA_WIDTH)
+	{
+		column = VGA_WIDTH - 1;
+	}
+
+	if (row >= VGA_HEIGHT)
+	{
+		row = VGA_HEIGHT - 1;
+	}
+
+	terminal_column = column;
+	terminal_row = row;
+}
+
 void terminal_scroll(void)
 {
 	// Move all lines up by one
