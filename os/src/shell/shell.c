@@ -565,9 +565,11 @@ void enzos_shell(void)
 {
 	char input[128];
 	size_t length = 0;
+	size_t prompt_col;
 
 	keyboard_initialize();
 	print_prompt();
+	prompt_col = terminal_column;
 
 	while (true) {
 		char c = keyboard_getchar();
@@ -578,6 +580,24 @@ void enzos_shell(void)
 			handle_command(input);
 			length = 0;
 			print_prompt();
+			prompt_col = terminal_column;
+			continue;
+		}
+
+		if (c == '\b') {
+			size_t col = terminal_column;
+			size_t row = terminal_row;
+
+			if (length > 0 && col > prompt_col) {
+				/* Move cursor back */
+				col--;
+
+				terminal_set_cursor(col, row);
+				terminal_putchar(' ');
+				terminal_set_cursor(col, row);
+
+				length--;
+			}
 			continue;
 		}
 

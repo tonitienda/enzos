@@ -44,4 +44,8 @@ void terminal_writestring(const char* data);
 
 void terminal_putchar(char c);
 
+/* Terminal state variables */
+extern size_t terminal_column;
+extern size_t terminal_row;
+
 #endif /* ENZOS_DRIVERS_TERMINAL_H */

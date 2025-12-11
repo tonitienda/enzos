@@ -70,3 +70,5 @@ qemu-vga-dump.txt
 qemu-vnc-client.log
 qemu-vnc-server.log
 *.ppm
+qemu-screen-*.png
+test-output.log

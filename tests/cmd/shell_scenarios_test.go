@@ -85,6 +85,21 @@ func TestShellScenarios(t *testing.T) {
 			PostScenarioDelay: scenarioDelay,
 		},
 		{
+			Name: "Backspace Delete",
+			Keys: []string{
+				"e", "c", "h", "o", "spc",
+				"w", "r", "o", "n", "g",
+				"backspace", "backspace", "backspace", "backspace", "backspace",
+				"r", "i", "g", "h", "t",
+				"ret",
+			},
+			Expected:         "right",
+			Unexpected:       []string{"wrong"},
+			WaitForPrompt:    true,
+			CheckPromptAfter: true,
+			KeystrokeDelay:   keystrokeDelay,
+		},
+		{
 			Name:             "Filesystem PWD",
 			Command:          "pwd",
 			Expected:         "/",
