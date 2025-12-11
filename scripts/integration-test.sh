@@ -9,6 +9,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ISO_PATH="${ISO_PATH:-$PROJECT_ROOT/os/enzos.iso}"
 QEMU_MONITOR_ADDR="127.0.0.1:45454"
 HEADLESS="${HEADLESS:-false}"
+SKIP_TESTS="${SKIP_TESTS:-false}"
 
 # Parse arguments
 for arg in "$@"; do
@@ -91,34 +92,37 @@ for i in {1..30}; do
   sleep 1
 done
 
-log ""
-log "Running tests..."
-log ""
+if [[ "$SKIP_TESTS" != "true" ]]; then
 
-cd "$PROJECT_ROOT/tests"
-export QEMU_MONITOR_ADDR
-export SCREENSHOT_DIR="$PROJECT_ROOT"
-
-# Enable demo mode (slower execution) when not headless
-if [[ "$HEADLESS" != "true" ]]; then
-  export DEMO_MODE=1
-  log "Demo mode enabled: tests will run slowly for visibility"
   log ""
+  log "Running tests..."
+  log ""
+
+  cd "$PROJECT_ROOT/tests"
+  export QEMU_MONITOR_ADDR
+  export SCREENSHOT_DIR="$PROJECT_ROOT"
+
+  # Enable demo mode (slower execution) when not headless
+  if [[ "$HEADLESS" != "true" ]]; then
+    export DEMO_MODE=1
+    log "Demo mode enabled: tests will run slowly for visibility"
+    log ""
+  fi
+
+  go test ./cmd -v -run TestShellScenarios -count=1
+
+  TEST_EXIT=$?
+
+  log ""
+  if [[ "$HEADLESS" == "true" ]]; then
+    log "Tests completed. Stopping QEMU..."
+    kill $QEMU_PID 2>/dev/null || true
+  else
+    log "Tests completed!"
+    log "QEMU window is still open (PID $QEMU_PID)"
+    log "Close the window manually or press Ctrl+C to exit"
+    wait $QEMU_PID 2>/dev/null || true
+  fi
+
+  exit $TEST_EXIT
 fi
-
-go test ./cmd -v -run TestShellScenarios -count=1
-
-TEST_EXIT=$?
-
-log ""
-if [[ "$HEADLESS" == "true" ]]; then
-  log "Tests completed. Stopping QEMU..."
-  kill $QEMU_PID 2>/dev/null || true
-else
-  log "Tests completed!"
-  log "QEMU window is still open (PID $QEMU_PID)"
-  log "Close the window manually or press Ctrl+C to exit"
-  wait $QEMU_PID 2>/dev/null || true
-fi
-
-exit $TEST_EXIT
