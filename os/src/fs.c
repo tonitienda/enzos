@@ -145,8 +145,39 @@ static int detach_child(FSNode* node)
         parent->children[parent->child_count - 1] = NULL;
         parent->child_count--;
         node->parent = NULL;
-        node->child_count = 0;
-        node->content = NULL;
+
+        return 0;
+}
+
+static int detach_child_keep_tree(FSNode* node)
+{
+        FSNode* parent;
+        int index = -1;
+
+        if (!node || !node->parent) {
+                return -1;
+        }
+
+        parent = node->parent;
+
+        for (int i = 0; i < parent->child_count; ++i) {
+                if (parent->children[i] == node) {
+                        index = i;
+                        break;
+                }
+        }
+
+        if (index == -1) {
+                return -1;
+        }
+
+        for (int i = index; i < parent->child_count - 1; ++i) {
+                        parent->children[i] = parent->children[i + 1];
+        }
+
+        parent->children[parent->child_count - 1] = NULL;
+        parent->child_count--;
+        node->parent = NULL;
 
         return 0;
 }
@@ -247,65 +278,55 @@ FSNode* fs_lookup(FSNode* parent, const char* name)
 	return NULL;
 }
 
-static FSNode* resolve_segment(FSNode* start, const char* segment)
-{
-	if (kstrcmp(segment, ".") == 0) {
-		return start;
-	}
-
-	if (kstrcmp(segment, "..") == 0) {
-		if (start && start->parent) {
-			return start->parent;
-		}
-		return start;
-	}
-
-	return fs_lookup(start, segment);
-}
-
 FSNode* fs_resolve_path(FSNode* cwd, const char* path)
 {
         FSNode* node;
         size_t i = 0;
 
-	if (!path || path[0] == '\0') {
-		return cwd;
-	}
+        if (!path || path[0] == '\0') {
+                return cwd;
+        }
 
-	if (path[0] == '/') {
-		node = &root_node;
-		i = 1;
-	} else {
-		node = cwd;
-	}
+        node = (path[0] == '/') ? &root_node : cwd;
 
-	while (path[i] != '\0') {
-		char segment[32];
-		size_t seg_len = 0;
+        if (path[0] == '/') {
+                i = 1;
+        }
 
-		while (path[i] == '/') {
-			++i;
-		}
+        while (path[i] != '\0') {
+                char segment[32];
+                size_t seg_len = 0;
 
-		if (path[i] == '\0') {
-			break;
-		}
+                while (path[i] == '/') {
+                        ++i;
+                }
 
-		while (path[i] != '\0' && path[i] != '/' && seg_len + 1 < sizeof(segment)) {
-			segment[seg_len++] = path[i++];
-		}
+                if (path[i] == '\0') {
+                        break;
+                }
 
-		segment[seg_len] = '\0';
+                while (path[i] != '\0' && path[i] != '/' && seg_len + 1 < sizeof(segment)) {
+                        segment[seg_len++] = path[i++];
+                }
 
-		if (seg_len == 0) {
-			continue;
-		}
+                segment[seg_len] = '\0';
 
-		node = resolve_segment(node, segment);
-		if (!node) {
-			return NULL;
-		}
-	}
+                if (seg_len == 0 || kstrcmp(segment, ".") == 0) {
+                        continue;
+                }
+
+                if (kstrcmp(segment, "..") == 0) {
+                        if (node && node->parent) {
+                                node = node->parent;
+                        }
+                        continue;
+                }
+
+                node = fs_lookup(node, segment);
+                if (!node) {
+                        return NULL;
+                }
+        }
 
         return node;
 }
@@ -342,6 +363,82 @@ int fs_remove_recursive(FSNode* node)
         return fs_remove(node);
 }
 
+FSNode* fs_clone_node(FSNode* node)
+{
+        FSNode* clone;
+
+        if (!node) {
+                return NULL;
+        }
+
+        clone = allocate_node(node->type, node->name, NULL);
+        if (!clone) {
+                return NULL;
+        }
+
+        if (node->type == NODE_FILE && node->content) {
+                if (fs_write(clone, node->content) != 0) {
+                        return NULL;
+                }
+        }
+
+        return clone;
+}
+
+int fs_copy_recursive(FSNode* src, FSNode* dst_parent, const char* new_name)
+{
+        if (!src || !dst_parent || dst_parent->type != NODE_DIR || !new_name) {
+                return -1;
+        }
+
+        if (src->type == NODE_FILE) {
+                FSNode* file = fs_lookup(dst_parent, new_name);
+                const char* data = fs_read(src);
+
+                if (!file) {
+                        file = fs_create_file(dst_parent, new_name);
+                        if (!file) {
+                                return -1;
+                        }
+                } else if (!fs_is_file(file)) {
+                        return -1;
+                }
+
+                if (data) {
+                        return fs_write(file, data);
+                }
+
+                return 0;
+        }
+
+        if (src->type == NODE_DIR) {
+                FSNode* dir = fs_lookup(dst_parent, new_name);
+
+                if (dir) {
+                        if (!fs_is_dir(dir)) {
+                                return -1;
+                        }
+                } else {
+                        dir = fs_create_dir(dst_parent, new_name);
+                        if (!dir) {
+                                return -1;
+                        }
+                }
+
+                for (int i = 0; i < src->child_count; ++i) {
+                        FSNode* child = src->children[i];
+
+                        if (fs_copy_recursive(child, dir, child->name) != 0) {
+                                return -1;
+                        }
+                }
+
+                return 0;
+        }
+
+        return -1;
+}
+
 FSNode* fs_get_cwd()
 {
 	return current_working_directory;
@@ -356,12 +453,12 @@ void fs_set_cwd(FSNode* node)
 
 int fs_write(FSNode* file, const char* data)
 {
-	size_t len;
-	size_t remaining;
+        size_t len;
+        size_t remaining;
 
-	if (!file || file->type != NODE_FILE || !data) {
-		return -1;
-	}
+        if (!file || file->type != NODE_FILE || !data) {
+                return -1;
+        }
 
 	len = kstrlen(data);
 	remaining = FS_CONTENT_POOL_SIZE - content_pool_used;
@@ -378,7 +475,45 @@ int fs_write(FSNode* file, const char* data)
 
 	content_pool[content_pool_used++] = '\0';
 
-	return 0;
+        return 0;
+}
+
+int fs_append(FSNode* file, const char* data)
+{
+        size_t existing_len = 0;
+        size_t new_len;
+        size_t remaining;
+        const char* existing;
+
+        if (!file || file->type != NODE_FILE || !data) {
+                return -1;
+        }
+
+        existing = file->content;
+        if (existing) {
+                existing_len = kstrlen(existing);
+        }
+
+        new_len = kstrlen(data);
+        remaining = FS_CONTENT_POOL_SIZE - content_pool_used;
+
+        if (existing_len + new_len + 1 > remaining) {
+                return -1;
+        }
+
+        file->content = &content_pool[content_pool_used];
+
+        for (size_t i = 0; i < existing_len; ++i) {
+                content_pool[content_pool_used++] = existing ? existing[i] : '\0';
+        }
+
+        for (size_t i = 0; i < new_len; ++i) {
+                content_pool[content_pool_used++] = data[i];
+        }
+
+        content_pool[content_pool_used++] = '\0';
+
+        return 0;
 }
 
 const char* fs_read(FSNode* file)
