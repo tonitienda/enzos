@@ -159,7 +159,7 @@ static int command_mkdir(const char* const* names, size_t count)
 		FSNode* dir = fs_mkdir(cwd, name);
 
 		if (!dir) {
-			shell_output_string("mkdir: cannot create directory '\");
+			shell_output_string("mkdir: cannot create directory '");
 			shell_output_string(name);
 			shell_output_string("'\n");
 		}
@@ -180,21 +180,21 @@ static int command_rmdir(const char* const* args, size_t count)
 		FSNode* target = fs_resolve_path(fs_get_cwd(), path);
 
 		if (!target || !fs_is_dir(target)) {
-			shell_output_string("rmdir: failed to remove '\");
+			shell_output_string("rmdir: failed to remove '");
 			shell_output_string(path);
 			shell_output_string("': Not a directory\n");
 			continue;
 		}
 
 		if (!fs_is_empty_dir(target)) {
-			shell_output_string("rmdir: failed to remove '\");
+			shell_output_string("rmdir: failed to remove '");
 			shell_output_string(path);
 			shell_output_string("': Directory not empty\n");
 			continue;
 		}
 
 		if (fs_remove(target) != 0) {
-			shell_output_string("rmdir: failed to remove '\");
+			shell_output_string("rmdir: failed to remove '");
 			shell_output_string(path);
 			shell_output_string("'\n");
 		}
@@ -228,14 +228,14 @@ static int command_rm(const char* const* args, size_t count)
 		FSNode* target = fs_resolve_path(fs_get_cwd(), path);
 
 		if (!target) {
-			shell_output_string("rm: cannot remove '\");
+			shell_output_string("rm: cannot remove '");
 			shell_output_string(path);
 			shell_output_string("': No such file or directory\n");
 			continue;
 		}
 
 		if (fs_is_dir(target) && !recursive) {
-			shell_output_string("rm: cannot remove '\");
+			shell_output_string("rm: cannot remove '");
 			shell_output_string(path);
 			shell_output_string("': Is a directory\n");
 			continue;
@@ -243,7 +243,7 @@ static int command_rm(const char* const* args, size_t count)
 
 		if (recursive) {
 			if (fs_remove_recursive(target) != 0) {
-				shell_output_string("rm: failed to remove '\");
+				shell_output_string("rm: failed to remove '");
 				shell_output_string(path);
 				shell_output_string("'\n");
 			}
@@ -251,7 +251,7 @@ static int command_rm(const char* const* args, size_t count)
 		}
 
 		if (fs_remove(target) != 0) {
-			shell_output_string("rm: failed to remove '\");
+			shell_output_string("rm: failed to remove '");
 			shell_output_string(path);
 			shell_output_string("'\n");
 		}
@@ -339,7 +339,7 @@ int commands_execute(const char* command, const char* const* args)
 			FSNode* resolved = fs_resolve_path(start, args[0]);
 
 			if (!resolved) {
-				shell_output_string("tree: '\");
+				shell_output_string("tree: '");
 				shell_output_string(args[0]);
 				shell_output_string("': No such file or directory\n");
 				return -1;
