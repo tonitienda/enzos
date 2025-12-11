@@ -2,6 +2,8 @@
 
 EnzOS - tiny OS for learning purposes
 
+![Enzos](./docs/enzos.gif)
+
 ## In-Memory Filesystem Commands
 
 EnzOS now boots with a minimal RAM-backed filesystem to keep shell exercises self contained. The shell exposes a handful of commands that mirror common UNIX basics without requiring any storage drivers:
