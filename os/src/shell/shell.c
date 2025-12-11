@@ -589,8 +589,6 @@ void enzos_shell(void)
 				size_t col;
 				size_t row;
 
-				length--;
-
 				col = terminal_column;
 				row = terminal_row;
 
@@ -602,6 +600,8 @@ void enzos_shell(void)
 				terminal_set_cursor(col, row);
 				terminal_putchar(' ');
 				terminal_set_cursor(col, row);
+
+				length--;
 			}
 			continue;
 		}
