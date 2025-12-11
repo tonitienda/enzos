@@ -1,15 +1,15 @@
-[shell-scenarios] Starting QEMU with visible window...
-[shell-scenarios] The QEMU window will open - watch the tests run!
+[shell-scenarios] Using ISO: /home/runner/work/enzos/enzos/os/enzos.iso
+[shell-scenarios] Starting QEMU in headless mode...
 [shell-scenarios] 
-[shell-scenarios] QEMU started with PID 78015
+[shell-scenarios] QEMU started with PID 5322
 [shell-scenarios] Waiting for QEMU monitor...
 [shell-scenarios] Monitor is ready!
 [shell-scenarios] 
 [shell-scenarios] Running tests...
 [shell-scenarios] 
 === RUN   TestShellScenarios
-=== RUN   TestShellScenarios/System_Boot
-    shell_scenarios_test.go:106: Scenario "System Boot" passed. VGA output:
+=== RUN   TestShellScenarios/OS_Ready
+    shell_scenarios_test.go:148: Scenario "OS Ready" passed. VGA output:
         
                                .
                         :=*#%@@%%*=...
@@ -31,38 +31,11 @@
                     -%@@@@@@@@.   .-=-+-
                        :*%%%*.     .
         EnzOS booted successfully.
+        Filesystem initialized.
         
         $
-        
-=== RUN   TestShellScenarios/Shell_Prompt_Appears
-    shell_scenarios_test.go:106: Scenario "Shell Prompt Appears" passed. VGA output:
-        
-                               .
-                        :=*#%@@%%*=...
-                    -#%@@@%*+++==-::+%@@*:
-                 .-#@@%*:           .*@@@@%
-                -*@%%-                .*@@@@-
-               =%@@*.                   -%@@@:
-              -%%@+                      -@@@%.
-             :%@@#.                       #@@@-
-             =@@@=                        +@@@*
-             *@@@:                        =@@@#
-             +@@@-                        +@@@+
-             -%@@*                       .#@@@-
-             :%%@%-                      +@@@%.
-              =@@@@=                    =%@@@.
-               -@@@@#-                 *@@@@:
-                =%@@@@@+:            .=@@@%.
-                  +@@@@@@@@@%-      -#@%%=
-                    -%@@@@@@@@.   .-=-+-
-                       :*%%%*.     .
-        EnzOS booted successfully.
-        
-        $
-        
 === RUN   TestShellScenarios/Echo_Hello_World
-    shell_scenarios_test.go:106: Scenario "Echo Hello World" passed. VGA output:
-        
+    shell_scenarios_test.go:148: Scenario "Echo Hello World" passed. VGA output:
                                .
                         :=*#%@@%%*=...
                     -#%@@@%*+++==-::+%@@*:
@@ -83,15 +56,13 @@
                     -%@@@@@@@@.   .-=-+-
                        :*%%%*.     .
         EnzOS booted successfully.
+        Filesystem initialized.
         
         $ echo "Hello, World"
         Hello, World
         $
-=== RUN   TestShellScenarios/Prompt_After_Newline
-    shell_scenarios_test.go:106: Scenario "Prompt After Newline" passed. VGA output:
-        $
-                               .
-                        :=*#%@@%%*=...
+=== RUN   TestShellScenarios/Backspace_Delete
+    shell_scenarios_test.go:148: Scenario "Backspace Delete" passed. VGA output:
                     -#%@@@%*+++==-::+%@@*:
                  .-#@@%*:           .*@@@@%
                 -*@%%-                .*@@@@-
@@ -110,17 +81,15 @@
                     -%@@@@@@@@.   .-=-+-
                        :*%%%*.     .
         EnzOS booted successfully.
+        Filesystem initialized.
         
         $ echo "Hello, World"
         Hello, World
+        $ echo right
+        right
         $
-=== RUN   TestShellScenarios/Final_Screen_State
-    shell_scenarios_test.go:104: === FINAL SCREEN STATE ===
-        $
-                               .
-                        :=*#%@@%%*=...
-                    -#%@@@%*+++==-::+%@@*:
-                 .-#@@%*:           .*@@@@%
+=== RUN   TestShellScenarios/Filesystem_PWD
+    shell_scenarios_test.go:148: Scenario "Filesystem PWD" passed. VGA output:
                 -*@%%-                .*@@@@-
                =%@@*.                   -%@@@:
               -%%@+                      -@@@%.
@@ -137,20 +106,134 @@
                     -%@@@@@@@@.   .-=-+-
                        :*%%%*.     .
         EnzOS booted successfully.
+        Filesystem initialized.
         
         $ echo "Hello, World"
         Hello, World
+        $ echo right
+        right
+        $ pwd
+        /
         $
-        === END SCREEN STATE ===
---- PASS: TestShellScenarios (9.67s)
-    --- PASS: TestShellScenarios/System_Boot (6.02s)
-    --- PASS: TestShellScenarios/Shell_Prompt_Appears (0.02s)
-    --- PASS: TestShellScenarios/Echo_Hello_World (2.77s)
-    --- PASS: TestShellScenarios/Prompt_After_Newline (0.84s)
-    --- PASS: TestShellScenarios/Final_Screen_State (0.02s)
+=== RUN   TestShellScenarios/Touch_And_List
+    shell_scenarios_test.go:148: Scenario "Touch And List" passed. VGA output:
+             :%@@#.                       #@@@-
+             =@@@=                        +@@@*
+             *@@@:                        =@@@#
+             +@@@-                        +@@@+
+             -%@@*                       .#@@@-
+             :%%@%-                      +@@@%.
+              =@@@@=                    =%@@@.
+               -@@@@#-                 *@@@@:
+                =%@@@@@+:            .=@@@%.
+                  +@@@@@@@@@%-      -#@%%=
+                    -%@@@@@@@@.   .-=-+-
+                       :*%%%*.     .
+        EnzOS booted successfully.
+        Filesystem initialized.
+        
+        $ echo "Hello, World"
+        Hello, World
+        $ echo right
+        right
+        $ pwd
+        /
+        $ touch notes
+        $ ls
+        notes
+        $
+=== RUN   TestShellScenarios/Write_And_Cat
+    shell_scenarios_test.go:148: Scenario "Write And Cat" passed. VGA output:
+             -%@@*                       .#@@@-
+             :%%@%-                      +@@@%.
+              =@@@@=                    =%@@@.
+               -@@@@#-                 *@@@@:
+                =%@@@@@+:            .=@@@%.
+                  +@@@@@@@@@%-      -#@%%=
+                    -%@@@@@@@@.   .-=-+-
+                       :*%%%*.     .
+        EnzOS booted successfully.
+        Filesystem initialized.
+        
+        $ echo "Hello, World"
+        Hello, World
+        $ echo right
+        right
+        $ pwd
+        /
+        $ touch notes
+        $ ls
+        notes
+        $ echo hello world > notes
+        $ cat notes
+        hello world
+        
+        $
+=== RUN   TestShellScenarios/Change_Directory
+    shell_scenarios_test.go:148: Scenario "Change Directory" passed. VGA output:
+                  +@@@@@@@@@%-      -#@%%=
+                    -%@@@@@@@@.   .-=-+-
+                       :*%%%*.     .
+        EnzOS booted successfully.
+        Filesystem initialized.
+        
+        $ echo "Hello, World"
+        Hello, World
+        $ echo right
+        right
+        $ pwd
+        /
+        $ touch notes
+        $ ls
+        notes
+        $ echo hello world > notes
+        $ cat notes
+        hello world
+        
+        $ cd /
+        $ mkdir home
+        $ cd home
+        $ pwd
+        /home
+        $
+=== RUN   TestShellScenarios/Tree_And_Remove
+    shell_scenarios_test.go:148: Scenario "Tree And Remove" passed. VGA output:
+        hello world
+        
+        $ cd /
+        $ mkdir home
+        $ cd home
+        $ pwd
+        /home
+        $ cd /
+        $ mkdir projects
+        $ cd projects
+        $ mkdir docs
+        $ touch temp
+        $ tree
+        projects/
+          docs/
+          temp
+        $ rm temp
+        $ rmdir docs
+        $ cd /
+        $ rm -r projects
+        $ rm notes
+        $ rm -r home
+        $ tree
+        /
+        $
+--- PASS: TestShellScenarios (36.89s)
+    --- PASS: TestShellScenarios/OS_Ready (6.12s)
+    --- PASS: TestShellScenarios/Echo_Hello_World (2.94s)
+    --- PASS: TestShellScenarios/Backspace_Delete (2.97s)
+    --- PASS: TestShellScenarios/Filesystem_PWD (1.26s)
+    --- PASS: TestShellScenarios/Touch_And_List (2.33s)
+    --- PASS: TestShellScenarios/Write_And_Cat (4.34s)
+    --- PASS: TestShellScenarios/Change_Directory (3.63s)
+    --- PASS: TestShellScenarios/Tree_And_Remove (13.24s)
 PASS
-ok  	github.com/tonitienda/enzos/tests/cmd	9.898s
+ok  	github.com/tonitienda/enzos/tests/cmd	36.890s
 [shell-scenarios] 
-[shell-scenarios] Tests completed!
-[shell-scenarios] QEMU window is still open (PID 78015)
-[shell-scenarios] Close the window manually or press Ctrl+C to exit
+[shell-scenarios] Tests completed. Stopping QEMU...
+qemu-system-x86_64: terminating on signal 15 from pid 5315 ()
