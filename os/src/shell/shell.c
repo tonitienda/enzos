@@ -565,9 +565,11 @@ void enzos_shell(void)
 {
 	char input[128];
 	size_t length = 0;
+	size_t prompt_col;
 
 	keyboard_initialize();
 	print_prompt();
+	prompt_col = terminal_column;
 
 	while (true) {
 		char c = keyboard_getchar();
@@ -578,19 +580,16 @@ void enzos_shell(void)
 			handle_command(input);
 			length = 0;
 			print_prompt();
+			prompt_col = terminal_column;
 			continue;
 		}
 
 		if (c == '\b') {
-			if (length > 0) {
+			if (length > 0 && terminal_column > prompt_col) {
 				size_t col;
 				size_t row;
 
 				length--;
-
-				/* Get current cursor position from terminal globals */
-				extern size_t terminal_column;
-				extern size_t terminal_row;
 
 				col = terminal_column;
 				row = terminal_row;
