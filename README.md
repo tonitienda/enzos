@@ -9,10 +9,13 @@ EnzOS now boots with a minimal RAM-backed filesystem to keep shell exercises sel
 - `pwd` prints the current working directory using parent pointers.
 - `ls` shows directory contents, suffixing directories with `/`.
 - `cd <path>` navigates relative or absolute paths with `.` and `..` support.
-- `mkdir <dir>` creates directories for later navigation.
+- `mkdir <dir>` creates directories for later navigation (re-invocations are harmless).
 - `touch <file>` creates empty files in the current directory.
 - `cat <file>` reads file contents when present.
 - `echo ... > <file>` captures command output and writes it into a file without touching the screen.
+- `rmdir <dir>` removes empty directories so students see the difference between deleting files and folder structures.
+- `rm [-r] <path>` deletes files and, with `-r`, prunes whole directory trees to illustrate recursive traversal.
+- `tree [path]` prints a nested view of the filesystem so learners can visualize parent/child links in memory.
 
 These commands keep students focused on path resolution and text I/O while reinforcing how the kernel and shell cooperate without persistence hardware.
 

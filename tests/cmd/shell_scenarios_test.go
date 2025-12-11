@@ -112,6 +112,13 @@ func TestShellScenarios(t *testing.T) {
 			WaitForPrompt:    true,
 			CheckPromptAfter: true,
 		},
+		{
+			Name:             "Tree And Remove",
+			Command:          "cd /\nmkdir projects\ncd projects\nmkdir docs\ntouch temp\ntree\nrm temp\nrmdir docs\ncd /\nrm -r projects\nrm notes\nrm -r home\ntree",
+			Expected:         "docs/",
+			WaitForPrompt:    true,
+			CheckPromptAfter: true,
+		},
 	}
 
 	// Run scenarios sequentially

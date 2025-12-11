@@ -145,20 +145,145 @@ static int command_cat(const char* path)
 	return 0;
 }
 
-static int command_mkdir(const char* name)
+static int command_mkdir(const char* const* names, size_t count)
 {
 	FSNode* cwd = fs_get_cwd();
 
-	if (!name) {
-		shell_output_string("mkdir: missing dirname\n");
+	if (count == 0) {
+		shell_output_string("mkdir: missing operand\n");
 		return -1;
 	}
 
-	if (!fs_lookup(cwd, name)) {
-		fs_create_dir(cwd, name);
+	for (size_t i = 0; i < count; i++) {
+		const char* name = names[i];
+		FSNode* dir = fs_mkdir(cwd, name);
+
+		if (!dir) {
+			shell_output_string("mkdir: cannot create directory '\");
+			shell_output_string(name);
+			shell_output_string("'\n");
+		}
 	}
 
 	return 0;
+}
+
+static int command_rmdir(const char* const* args, size_t count)
+{
+	if (count == 0) {
+		shell_output_string("rmdir: missing operand\n");
+		return -1;
+	}
+
+	for (size_t i = 0; i < count; i++) {
+		const char* path = args[i];
+		FSNode* target = fs_resolve_path(fs_get_cwd(), path);
+
+		if (!target || !fs_is_dir(target)) {
+			shell_output_string("rmdir: failed to remove '\");
+			shell_output_string(path);
+			shell_output_string("': Not a directory\n");
+			continue;
+		}
+
+		if (!fs_is_empty_dir(target)) {
+			shell_output_string("rmdir: failed to remove '\");
+			shell_output_string(path);
+			shell_output_string("': Directory not empty\n");
+			continue;
+		}
+
+		if (fs_remove(target) != 0) {
+			shell_output_string("rmdir: failed to remove '\");
+			shell_output_string(path);
+			shell_output_string("'\n");
+		}
+	}
+
+	return 0;
+}
+
+static int command_rm(const char* const* args, size_t count)
+{
+	size_t start_index = 0;
+	bool recursive = false;
+
+	if (count == 0) {
+		shell_output_string("rm: missing operand\n");
+		return -1;
+	}
+
+	if (args[0] && args[0][0] == '-' && args[0][1] == 'r' && args[0][2] == '\0') {
+		recursive = true;
+		start_index = 1;
+	}
+
+	if (start_index >= count) {
+		shell_output_string("rm: missing operand\n");
+		return -1;
+	}
+
+	for (size_t i = start_index; i < count; i++) {
+		const char* path = args[i];
+		FSNode* target = fs_resolve_path(fs_get_cwd(), path);
+
+		if (!target) {
+			shell_output_string("rm: cannot remove '\");
+			shell_output_string(path);
+			shell_output_string("': No such file or directory\n");
+			continue;
+		}
+
+		if (fs_is_dir(target) && !recursive) {
+			shell_output_string("rm: cannot remove '\");
+			shell_output_string(path);
+			shell_output_string("': Is a directory\n");
+			continue;
+		}
+
+		if (recursive) {
+			if (fs_remove_recursive(target) != 0) {
+				shell_output_string("rm: failed to remove '\");
+				shell_output_string(path);
+				shell_output_string("'\n");
+			}
+			continue;
+		}
+
+		if (fs_remove(target) != 0) {
+			shell_output_string("rm: failed to remove '\");
+			shell_output_string(path);
+			shell_output_string("'\n");
+		}
+	}
+
+	return 0;
+}
+
+static void shell_print_tree_node(FSNode* node, int depth)
+{
+	for (int i = 0; i < depth; i++) {
+		shell_output_string("  ");
+	}
+
+	if (node->parent) {
+		shell_output_string(node->name);
+		if (fs_is_dir(node)) {
+			shell_output_char('/');
+		}
+	} else {
+		shell_output_char('/');
+	}
+
+	shell_output_char('\n');
+
+	if (!fs_is_dir(node)) {
+		return;
+	}
+
+	for (int i = 0; i < node->child_count; i++) {
+		shell_print_tree_node(node->children[i], depth + 1);
+	}
 }
 
 int commands_execute(const char* command, const char* const* args)
@@ -196,8 +321,37 @@ int commands_execute(const char* command, const char* const* args)
 	}
 
 	if (kstreq(command, "mkdir")) {
-		return command_mkdir(argc > 0 ? args[0] : NULL);
+		return command_mkdir(args, argc);
+	}
+
+	if (kstreq(command, "rmdir")) {
+		return command_rmdir(args, argc);
+	}
+
+	if (kstreq(command, "rm")) {
+		return command_rm(args, argc);
+	}
+
+	if (kstreq(command, "tree")) {
+		FSNode* start = fs_get_cwd();
+
+		if (argc > 0) {
+			FSNode* resolved = fs_resolve_path(start, args[0]);
+
+			if (!resolved) {
+				shell_output_string("tree: '\");
+				shell_output_string(args[0]);
+				shell_output_string("': No such file or directory\n");
+				return -1;
+			}
+
+			start = resolved;
+		}
+
+		shell_print_tree_node(start, 0);
+		return 0;
 	}
 
 	return -1;
 }
+
