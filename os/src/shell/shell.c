@@ -581,6 +581,32 @@ void enzos_shell(void)
 			continue;
 		}
 
+		if (c == '\b') {
+			if (length > 0) {
+				size_t col;
+				size_t row;
+
+				length--;
+
+				/* Get current cursor position from terminal globals */
+				extern size_t terminal_column;
+				extern size_t terminal_row;
+
+				col = terminal_column;
+				row = terminal_row;
+
+				/* Move cursor back */
+				if (col > 0) {
+					col--;
+				}
+
+				terminal_set_cursor(col, row);
+				terminal_putchar(' ');
+				terminal_set_cursor(col, row);
+			}
+			continue;
+		}
+
 		if (length < sizeof(input) - 1) {
 			input[length++] = c;
 			terminal_putchar(c);
