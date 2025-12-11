@@ -22,10 +22,16 @@ void fs_init();
 // node creation
 FSNode* fs_create_file(FSNode* parent, const char* name);
 FSNode* fs_create_dir(FSNode* parent, const char* name);
+FSNode* fs_mkdir(FSNode* parent, const char* name);
 
 // lookup + navigation
 FSNode* fs_lookup(FSNode* parent, const char* name);
 FSNode* fs_resolve_path(FSNode* cwd, const char* path);
+int fs_is_dir(FSNode* node);
+int fs_is_file(FSNode* node);
+int fs_is_empty_dir(FSNode* node);
+int fs_remove(FSNode* node);
+int fs_remove_recursive(FSNode* node);
 
 // working directory
 FSNode* fs_get_cwd();

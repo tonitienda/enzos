@@ -104,16 +104,70 @@ void fs_init()
 
 static int add_child(FSNode* parent, FSNode* child)
 {
-	if (!parent || parent->type != NODE_DIR) {
-		return -1;
-	}
+        if (!parent || parent->type != NODE_DIR) {
+                return -1;
+        }
 
 	if (parent->child_count >= 32) {
 		return -1;
 	}
 
-	parent->children[parent->child_count++] = child;
-	return 0;
+        parent->children[parent->child_count++] = child;
+        return 0;
+}
+
+static int detach_child(FSNode* node)
+{
+        FSNode* parent;
+        int index = -1;
+
+        if (!node || !node->parent) {
+                return -1;
+        }
+
+        parent = node->parent;
+
+        for (int i = 0; i < parent->child_count; ++i) {
+                if (parent->children[i] == node) {
+                        index = i;
+                        break;
+                }
+        }
+
+        if (index == -1) {
+                return -1;
+        }
+
+        for (int i = index; i < parent->child_count - 1; ++i) {
+                parent->children[i] = parent->children[i + 1];
+        }
+
+        parent->children[parent->child_count - 1] = NULL;
+        parent->child_count--;
+        node->parent = NULL;
+        node->child_count = 0;
+        node->content = NULL;
+
+        return 0;
+}
+
+int fs_is_dir(FSNode* node)
+{
+        return node && node->type == NODE_DIR;
+}
+
+int fs_is_file(FSNode* node)
+{
+        return node && node->type == NODE_FILE;
+}
+
+int fs_is_empty_dir(FSNode* node)
+{
+        if (!fs_is_dir(node)) {
+                return 0;
+        }
+
+        return node->child_count == 0;
 }
 
 FSNode* fs_create_file(FSNode* parent, const char* name)
@@ -138,7 +192,7 @@ FSNode* fs_create_file(FSNode* parent, const char* name)
 
 FSNode* fs_create_dir(FSNode* parent, const char* name)
 {
-	FSNode* node;
+        FSNode* node;
 
 	if (!parent || parent->type != NODE_DIR) {
 		return NULL;
@@ -153,7 +207,27 @@ FSNode* fs_create_dir(FSNode* parent, const char* name)
 		return NULL;
 	}
 
-	return node;
+        return node;
+}
+
+FSNode* fs_mkdir(FSNode* parent, const char* name)
+{
+        FSNode* existing;
+
+        if (!parent || parent->type != NODE_DIR) {
+                return NULL;
+        }
+
+        existing = fs_lookup(parent, name);
+        if (existing) {
+                if (existing->type == NODE_DIR) {
+                        return existing;
+                }
+
+                return NULL;
+        }
+
+        return fs_create_dir(parent, name);
 }
 
 FSNode* fs_lookup(FSNode* parent, const char* name)
@@ -191,8 +265,8 @@ static FSNode* resolve_segment(FSNode* start, const char* segment)
 
 FSNode* fs_resolve_path(FSNode* cwd, const char* path)
 {
-	FSNode* node;
-	size_t i = 0;
+        FSNode* node;
+        size_t i = 0;
 
 	if (!path || path[0] == '\0') {
 		return cwd;
@@ -233,7 +307,39 @@ FSNode* fs_resolve_path(FSNode* cwd, const char* path)
 		}
 	}
 
-	return node;
+        return node;
+}
+
+int fs_remove(FSNode* node)
+{
+        if (!node || node == &root_node) {
+                return -1;
+        }
+
+        if (fs_is_dir(node) && !fs_is_empty_dir(node)) {
+                return -1;
+        }
+
+        return detach_child(node);
+}
+
+int fs_remove_recursive(FSNode* node)
+{
+        if (!node || node == &root_node) {
+                return -1;
+        }
+
+        if (fs_is_dir(node)) {
+                while (node->child_count > 0) {
+                        FSNode* child = node->children[node->child_count - 1];
+
+                        if (fs_remove_recursive(child) != 0) {
+                                return -1;
+                        }
+                }
+        }
+
+        return fs_remove(node);
 }
 
 FSNode* fs_get_cwd()
